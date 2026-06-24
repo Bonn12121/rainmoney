@@ -104,7 +104,7 @@ export default function PlinkoGame() {
 
   // Trigger Ball Drop
   const handleDropBall = () => {
-    if (betAmount <= 0 || betAmount > credits) {
+    if (betAmount < 0.01 || betAmount > credits) {
       alert('Invalid bet amount or insufficient credits.');
       return;
     }
@@ -276,7 +276,7 @@ export default function PlinkoGame() {
           const finalMultiplier = targetWedge.multiplier;
 
           // Resolve payout
-          const payout = Math.round(ball.bet * finalMultiplier);
+          const payout = Math.round(ball.bet * finalMultiplier * 100) / 100;
           const won = finalMultiplier >= 1.0;
 
           if (won) {
@@ -366,19 +366,21 @@ export default function PlinkoGame() {
                   <span className="absolute left-4 top-3.5 text-neutral-500 font-extrabold text-xs">$</span>
                   <input
                     type="number"
+                    min="0.01"
+                    step="0.01"
                     value={betAmount}
-                    onChange={(e) => setBetAmount(Math.max(1, parseInt(e.target.value) || 0))}
+                    onChange={(e) => setBetAmount(Math.max(0.01, parseFloat(e.target.value) || 0))}
                     className="w-full bg-black border border-luxury-border focus:border-gold-500/50 rounded-xl pl-8 pr-16 py-3 text-sm text-white font-extrabold focus:outline-none"
                   />
                   <div className="absolute right-2 top-2 flex gap-1">
                     <button
-                      onClick={() => setBetAmount(prev => Math.max(1, Math.round(prev / 2)))}
+                      onClick={() => setBetAmount(prev => Math.max(0.01, Math.round((prev / 2) * 100) / 100))}
                       className="px-2.5 py-1 bg-neutral-900 border border-luxury-border hover:border-neutral-700 text-[10px] text-neutral-400 font-extrabold rounded-lg cursor-pointer"
                     >
                       /2
                     </button>
                     <button
-                      onClick={() => setBetAmount(prev => Math.min(credits, prev * 2))}
+                      onClick={() => setBetAmount(prev => Math.min(credits, Math.round(prev * 2 * 100) / 100))}
                       className="px-2.5 py-1 bg-neutral-900 border border-luxury-border hover:border-neutral-700 text-[10px] text-neutral-400 font-extrabold rounded-lg cursor-pointer"
                     >
                       x2
@@ -413,7 +415,7 @@ export default function PlinkoGame() {
                 fullWidth
                 size="lg"
                 onClick={handleDropBall}
-                disabled={betAmount <= 0}
+                disabled={betAmount < 0.01}
               >
                 Drop Ball
               </Button>

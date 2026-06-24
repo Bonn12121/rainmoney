@@ -43,7 +43,7 @@ export default function MinesGame() {
 
   // Start Mines Game
   const handleStartGame = () => {
-    if (betAmount <= 0 || betAmount > credits) {
+    if (betAmount < 0.01 || betAmount > credits) {
       alert('Invalid bet amount or insufficient credits.');
       return;
     }
@@ -127,7 +127,7 @@ export default function MinesGame() {
     if (!isPlaying || gameOver || gemsCount === 0) return;
 
     const mult = getMultiplier(gemsCount);
-    const payout = Math.round(betAmount * mult);
+    const payout = Math.round(betAmount * mult * 100) / 100;
     
     addCredits(payout);
     playWin();
@@ -188,21 +188,23 @@ export default function MinesGame() {
                   <span className="absolute left-4 top-3.5 text-neutral-500 font-extrabold text-xs">$</span>
                   <input
                     type="number"
+                    min="0.01"
+                    step="0.01"
                     value={betAmount}
-                    onChange={(e) => setBetAmount(Math.max(1, parseInt(e.target.value) || 0))}
+                    onChange={(e) => setBetAmount(Math.max(0.01, parseFloat(e.target.value) || 0))}
                     disabled={isPlaying}
                     className="w-full bg-black border border-luxury-border focus:border-gold-500/50 rounded-xl pl-8 pr-16 py-3 text-sm text-white font-extrabold focus:outline-none disabled:opacity-50"
                   />
                   <div className="absolute right-2 top-2 flex gap-1">
                     <button
-                      onClick={() => setBetAmount(prev => Math.max(1, Math.round(prev / 2)))}
+                      onClick={() => setBetAmount(prev => Math.max(0.01, Math.round((prev / 2) * 100) / 100))}
                       disabled={isPlaying}
                       className="px-2.5 py-1 bg-neutral-900 border border-luxury-border hover:border-neutral-700 text-[10px] text-neutral-400 font-extrabold rounded-lg disabled:opacity-50"
                     >
                       /2
                     </button>
                     <button
-                      onClick={() => setBetAmount(prev => Math.min(credits, prev * 2))}
+                      onClick={() => setBetAmount(prev => Math.min(credits, Math.round(prev * 2 * 100) / 100))}
                       disabled={isPlaying}
                       className="px-2.5 py-1 bg-neutral-900 border border-luxury-border hover:border-neutral-700 text-[10px] text-neutral-400 font-extrabold rounded-lg disabled:opacity-50"
                     >

@@ -118,10 +118,11 @@ export default function Store() {
                 </span>
                 <input
                   type="number"
-                  min="10"
+                  min="0.01"
+                  step="0.01"
                   max="1000000"
                   value={customAmount}
-                  onChange={(e) => setCustomAmount(Math.max(1, parseInt(e.target.value) || 0))}
+                  onChange={(e) => setCustomAmount(Math.max(0.01, parseFloat(e.target.value) || 0))}
                   disabled={checkoutLoading !== null}
                   className="w-full bg-black border border-luxury-border focus:border-gold-500/50 rounded-xl pl-8 pr-4 py-3.5 text-sm text-white font-extrabold focus:outline-none disabled:opacity-50"
                 />
@@ -131,7 +132,7 @@ export default function Store() {
             <div className="w-full md:w-56 flex flex-col gap-2">
               <span className="text-xs font-bold text-neutral-500">USD Price (Demo)</span>
               <div className="bg-black border border-luxury-border rounded-xl px-4 py-3.5 font-bold text-sm text-neutral-300 select-none">
-                ${customAmount.toLocaleString()} USD
+                ${customAmount.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })} USD
               </div>
             </div>
 

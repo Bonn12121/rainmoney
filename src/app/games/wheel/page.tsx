@@ -146,7 +146,7 @@ export default function WheelGame() {
 
   // Spin function
   const handleSpin = () => {
-    if (betAmount <= 0 || betAmount > credits) {
+    if (betAmount < 0.01 || betAmount > credits) {
       alert('Invalid bet amount or insufficient credits.');
       return;
     }
@@ -200,7 +200,7 @@ export default function WheelGame() {
       const status = won ? 'win' : 'loss';
       setOutcomeStatus(status);
 
-      const payout = Math.round(betAmount * targetWedge.multiplier);
+      const payout = Math.round(betAmount * targetWedge.multiplier * 100) / 100;
 
       if (won) {
         playWin();
@@ -267,21 +267,23 @@ export default function WheelGame() {
                   <span className="absolute left-4 top-3.5 text-neutral-500 font-extrabold text-xs">$</span>
                   <input
                     type="number"
+                    min="0.01"
+                    step="0.01"
                     value={betAmount}
-                    onChange={(e) => setBetAmount(Math.max(1, parseInt(e.target.value) || 0))}
+                    onChange={(e) => setBetAmount(Math.max(0.01, parseFloat(e.target.value) || 0))}
                     disabled={isSpinning}
                     className="w-full bg-black border border-luxury-border focus:border-gold-500/50 rounded-xl pl-8 pr-16 py-3 text-sm text-white font-extrabold focus:outline-none disabled:opacity-50"
                   />
                   <div className="absolute right-2 top-2 flex gap-1">
                     <button
-                      onClick={() => setBetAmount(prev => Math.max(1, Math.round(prev / 2)))}
+                      onClick={() => setBetAmount(prev => Math.max(0.01, Math.round((prev / 2) * 100) / 100))}
                       disabled={isSpinning}
                       className="px-2.5 py-1 bg-neutral-900 border border-luxury-border hover:border-neutral-700 text-[10px] text-neutral-400 font-extrabold rounded-lg disabled:opacity-50"
                     >
                       /2
                     </button>
                     <button
-                      onClick={() => setBetAmount(prev => Math.min(credits, prev * 2))}
+                      onClick={() => setBetAmount(prev => Math.min(credits, Math.round(prev * 2 * 100) / 100))}
                       disabled={isSpinning}
                       className="px-2.5 py-1 bg-neutral-900 border border-luxury-border hover:border-neutral-700 text-[10px] text-neutral-400 font-extrabold rounded-lg disabled:opacity-50"
                     >
@@ -421,8 +423,8 @@ export default function WheelGame() {
                 <h4 className="text-3xl font-black text-white uppercase mt-2">{selectedMultiplier.toFixed(1)}x</h4>
                 <p className={`text-xs font-extrabold mt-1.5 ${outcomeStatus === 'win' ? 'text-emerald-500' : 'text-red-500'}`}>
                   {outcomeStatus === 'win' 
-                    ? `Payout +$${Math.round(betAmount * selectedMultiplier)}` 
-                    : `Loss -$${betAmount}`}
+                    ? `Payout +$${(Math.round(betAmount * selectedMultiplier * 100) / 100).toLocaleString()}` 
+                    : `Loss -$${betAmount.toLocaleString()}`}
                 </p>
               </div>
             )}

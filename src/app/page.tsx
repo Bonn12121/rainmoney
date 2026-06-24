@@ -76,12 +76,12 @@ export default function Home() {
     const winsInterval = setInterval(() => {
       const randomGame = GAMES[Math.floor(Math.random() * GAMES.length)];
       const randomUser = FICTIONOUS_NAMES[Math.floor(Math.random() * FICTIONOUS_NAMES.length)];
-      const bet = Math.floor(Math.random() * 800) + 50;
+      const bet = Math.round((Math.random() * 800 + 50) * 100) / 100;
       const isLargeWin = Math.random() > 0.8;
       const multiplier = isLargeWin 
         ? parseFloat((Math.random() * 8 + 2).toFixed(2)) 
         : parseFloat((Math.random() * 1.5 + 1.1).toFixed(2));
-      const payout = Math.round(bet * multiplier);
+      const payout = Math.round(bet * multiplier * 100) / 100;
 
       const newWin: LiveWin = {
         id: Math.random().toString(36).substring(2, 9),
