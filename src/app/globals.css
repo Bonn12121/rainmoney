@@ -1,26 +1,122 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@theme {
+  --color-gold-50: #eff6ff;
+  --color-gold-100: #dbeafe;
+  --color-gold-200: #bfdbfe;
+  --color-gold-300: #93c5fd;
+  --color-gold-400: #60a5fa;
+  --color-gold-500: #3b82f6; /* Electric Blue instead of gold! */
+  --color-gold-600: #2563eb;
+  --color-gold-700: #1d4ed8;
+  --color-gold-800: #1e40af;
+  --color-gold-900: #1e3a8a;
+
+  --color-luxury-bg: #020617; /* Very deep navy black */
+  --color-luxury-surface: #0a0f1d; /* Dark slate navy */
+  --color-luxury-surface-hover: #111a2e;
+  --color-luxury-border: #1e293b;
+  --color-luxury-border-active: #334155;
+  
+  --font-serif: var(--font-playfair);
+  
+  --animate-spin-slow: spin 25s linear infinite;
+  --animate-pulse-slow: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  --animate-float: float 6s ease-in-out infinite;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
   }
 }
 
+:root {
+  --background: #020617;
+  --foreground: #ffffff;
+}
+
 body {
-  background: var(--background);
+  background-color: var(--color-luxury-bg);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  overflow-x: hidden;
+  font-family: var(--font-sans), system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #020617;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #111a2e;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #1e293b;
+}
+
+/* Custom Luxury Gradients & Glow Utilities (Modified to blue shades) */
+.gold-gradient-text {
+  background: linear-gradient(135deg, #eff6ff 0%, #3b82f6 40%, #1d4ed8 80%, #1e3a8a 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gold-gradient-bg {
+  background: linear-gradient(135deg, #eff6ff -10%, #3b82f6 40%, #1d4ed8 85%);
+}
+
+.gold-border-glow {
+  border: 1px solid rgba(59, 130, 246, 0.15);
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.02);
+  transition: all 0.3s ease;
+}
+
+.gold-border-glow:hover {
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  box-shadow: 0 0 25px rgba(59, 130, 246, 0.08);
+}
+
+.glass-panel {
+  background: rgba(10, 15, 29, 0.75);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.glow-gold {
+  filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.3));
+}
+
+.glow-gold-large {
+  filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.2));
+}
+
+/* Plinko bouncy pin effects */
+.peg-pulse {
+  animation: pegPulseAnimation 0.15s ease-out;
+}
+
+@keyframes pegPulseAnimation {
+  0% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(1.4);
+    filter: brightness(1.8) drop-shadow(0 0 4px rgba(59, 130, 246, 0.6));
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
 }
