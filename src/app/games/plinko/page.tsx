@@ -96,11 +96,11 @@ export default function PlinkoGame() {
   const numRows = 12; // 12 rows of pegs
 
   // Peg Layout Constants
-  const spacingX = 28;
-  const spacingY = 24;
-  const startY = 40;
-  const pegRadius = 2.5;
-  const ballRadius = 5;
+  const spacingX = 40;
+  const spacingY = 34;
+  const startY = 50;
+  const pegRadius = 3;
+  const ballRadius = 6;
 
   // Trigger Ball Drop
   const handleDropBall = () => {
@@ -115,7 +115,7 @@ export default function PlinkoGame() {
     playClick();
 
     const canvas = canvasRef.current;
-    const width = canvas ? canvas.width : 400;
+    const width = canvas ? canvas.width : 600;
     const center = width / 2;
 
     const newBall: Ball = {
@@ -138,8 +138,8 @@ export default function PlinkoGame() {
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    const width = canvas.width = 400;
-    const height = canvas.height = 385;
+    const width = canvas.width = 600;
+    const height = canvas.height = 550;
     const center = width / 2;
 
     const render = () => {
@@ -168,6 +168,23 @@ export default function PlinkoGame() {
         }
       }
 
+      // Draw neon guide rails (slanted boundaries)
+      ctx.save();
+      ctx.beginPath();
+      // Left rail
+      ctx.moveTo(center - 0.85 * spacingX, startY);
+      ctx.lineTo(center - (numRows * 0.5 + 0.85) * spacingX, startY + numRows * spacingY);
+      // Right rail
+      ctx.moveTo(center + 0.85 * spacingX, startY);
+      ctx.lineTo(center + (numRows * 0.5 + 0.85) * spacingX, startY + numRows * spacingY);
+
+      ctx.strokeStyle = 'rgba(59, 130, 246, 0.45)'; // Blue neon glow
+      ctx.lineWidth = 3;
+      ctx.shadowBlur = 8;
+      ctx.shadowColor = '#3b82f6';
+      ctx.stroke();
+      ctx.restore();
+
       // Draw bottom bins / buckets
       const binWidth = spacingX - 6;
       bins.forEach((bin, idx) => {
@@ -175,14 +192,14 @@ export default function PlinkoGame() {
         const binY = startY + numRows * spacingY + 8;
 
         ctx.fillStyle = bin.color;
-        ctx.fillRect(binX, binY, binWidth, 18);
+        ctx.fillRect(binX, binY, binWidth, 24);
 
         // Text color styling inside buckets
         ctx.fillStyle = bin.multiplier >= 2.0 ? '#ffffff' : '#94a3b8';
-        ctx.font = 'bold 8px sans-serif';
+        ctx.font = 'bold 10px sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(`${bin.multiplier}`, binX + binWidth / 2, binY + 9);
+        ctx.fillText(`${bin.multiplier}`, binX + binWidth / 2, binY + 12);
       });
 
       // Update and Draw active balls in Ref array
@@ -199,15 +216,20 @@ export default function PlinkoGame() {
         ball.x += ball.vx;
         ball.y += ball.vy;
 
-        // Bounce off left/right boundary walls
-        const leftWall = 8;
-        const rightWall = width - 8;
-        if (ball.x - ballRadius < leftWall) {
-          ball.x = leftWall + ballRadius;
-          ball.vx = -ball.vx * 0.5;
-        } else if (ball.x + ballRadius > rightWall) {
-          ball.x = rightWall - ballRadius;
-          ball.vx = -ball.vx * 0.5;
+        // Containment physics (slant boundary rails)
+        const rowProgress = Math.max(0, (ball.y - startY) / spacingY);
+        const halfWidth = (rowProgress * 0.5 + 0.85) * spacingX;
+        const leftBound = center - halfWidth;
+        const rightBound = center + halfWidth;
+
+        if (ball.x - ballRadius < leftBound) {
+          ball.x = leftBound + ballRadius;
+          ball.vx = Math.abs(ball.vx) * 0.45 + 0.35; // bounce inward right
+          playPlop();
+        } else if (ball.x + ballRadius > rightBound) {
+          ball.x = rightBound - ballRadius;
+          ball.vx = -Math.abs(ball.vx) * 0.45 - 0.35; // bounce inward left
+          playPlop();
         }
 
         // Check peg collisions
@@ -466,7 +488,7 @@ export default function PlinkoGame() {
 
           {/* Canvas Board */}
           <Card className="bg-[#020617] border-luxury-border flex items-center justify-center p-0 relative overflow-hidden select-none">
-            <canvas ref={canvasRef} className="block w-full max-w-[400px] h-[385px]" />
+            <canvas ref={canvasRef} className="block w-full max-w-[600px] h-[550px]" />
           </Card>
 
           {/* Game Rules Description */}
