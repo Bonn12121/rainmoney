@@ -180,18 +180,17 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         });
 
         // Heuristic signals for VPN/Proxy/Hosting:
-        const systemTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-        const ipTimezone = data.timezone?.id;
-        const isTimezoneMismatch = ipTimezone && systemTimezone && (ipTimezone !== systemTimezone);
-
         const vpnKeywords = [
           'vpn', 'proxy', 'hosting', 'vps', 'server', 'datacenter', 'cloud',
           'dedicated', 'm247', 'linode', 'digitalocean', 'ovh', 'leaseweb',
-          'hetzner', 'vultr', 'choopa', 'psychz', 'packet', 'fastly', 'cloudflare'
+          'hetzner', 'vultr', 'choopa', 'psychz', 'packet', 'fastly', 'cloudflare',
+          'surfshark', 'mullvad', 'proton', 'windscribe', 'tunnelbear', 'cyberghost',
+          'ipvanish', 'privateinternetaccess', 'zenmate', 'torguard', 'ivacy',
+          'hotspot shield', 'vypr', 'contabo', 'scaleway', 'colocrossing', 'quadranet'
         ];
         const isVpnIsp = vpnKeywords.some(keyword => isp.includes(keyword));
 
-        if (isTimezoneMismatch || isVpnIsp) {
+        if (isVpnIsp) {
           setIsVpnBlocked(true);
           return;
         }
@@ -222,7 +221,10 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         const vpnKeywords = [
           'vpn', 'proxy', 'hosting', 'vps', 'server', 'datacenter', 'cloud',
           'dedicated', 'm247', 'linode', 'digitalocean', 'ovh', 'leaseweb',
-          'hetzner', 'vultr', 'choopa', 'psychz', 'packet', 'fastly', 'cloudflare'
+          'hetzner', 'vultr', 'choopa', 'psychz', 'packet', 'fastly', 'cloudflare',
+          'surfshark', 'mullvad', 'proton', 'windscribe', 'tunnelbear', 'cyberghost',
+          'ipvanish', 'privateinternetaccess', 'zenmate', 'torguard', 'ivacy',
+          'hotspot shield', 'vypr', 'contabo', 'scaleway', 'colocrossing', 'quadranet'
         ];
         const isVpnOrg = vpnKeywords.some(keyword => org.includes(keyword));
 
