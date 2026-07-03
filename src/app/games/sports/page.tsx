@@ -1986,6 +1986,13 @@ export default function SportsBettingGame() {
         }
       }
 
+      if (finalGame.finished !== 'TRUE') {
+        const errorMsg = lang === 'vi'
+          ? 'Dữ liệu trận đấu chưa được cập nhật. Vui lòng quyết toán lại khi kết quả đã sẵn sàng.'
+          : 'Match result is not yet available in the live scoreboard. Please claim the result when it is ready.';
+        throw new Error(errorMsg);
+      }
+
       const homeScore = Number(finalGame.home_score || 0);
       const awayScore = Number(finalGame.away_score || 0);
       const homeScorersList = parseScorers(finalGame.home_scorers);
