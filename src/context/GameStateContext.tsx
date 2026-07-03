@@ -1,6 +1,8 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import { VpnBlockOverlay } from '@/components/ui/VpnBlockOverlay';
+
 
 export interface HistoryItem {
   id: string;
@@ -101,7 +103,8 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const [gameHistory, setGameHistory] = useState<HistoryItem[]>([]);
   const [achievements, setAchievements] = useState<Achievement[]>(DEFAULT_ACHIEVEMENTS);
   const [dailyRewardClaimedAt, setDailyRewardClaimedAt] = useState<string | null>(null);
-  const [language, setLanguage] = useState<'en' | 'vi'>('vi');
+  const [language, setLanguage] = useState<'en' | 'vi'>('en');
+
   const [soundEnabled, setSoundEnabled] = useState<boolean>(true);
   const [voiceEnabled, setVoiceEnabled] = useState<boolean>(true);
   const [volume, setVolume] = useState<number>(100);
@@ -128,6 +131,113 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
   const [rocketAutoCashout, setRocketAutoCashout] = useState<number | null>(null);
   const [rocketHasCashedOut, setRocketHasCashedOut] = useState<boolean>(false);
   const [rocketWinAmount, setRocketWinAmount] = useState<number>(0);
+
+  // VPN/Proxy Detection States
+  const [isVpnBlocked, setIsVpnBlocked] = useState<boolean>(false);
+  const [vpnInfo, setVpnInfo] = useState({
+    ip: '',
+    country: '',
+    region: '',
+    isp: '',
+  });
+  const [isCheckingVpn, setIsCheckingVpn] = useState<boolean>(false);
+
+  const checkVpnConnection = async () => {
+    if (typeof window === 'undefined') return;
+
+    // 1. Bypass local development environments
+    const hostname = window.location.hostname;
+    if (
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      hostname === '[::1]' ||
+      hostname.startsWith('192.168.') ||
+      hostname.startsWith('10.') ||
+      hostname.startsWith('172.')
+    ) {
+      console.log('Anti-VPN bypass triggered for local development hostname:', hostname);
+      return;
+    }
+
+    setIsCheckingVpn(true);
+    try {
+      // 2. Primary attempt using ipwho.is
+      const res = await fetch('https://ipwho.is/');
+      if (!res.ok) throw new Error('ipwho.is failed');
+      const data = await res.json();
+      
+      if (data && data.success) {
+        const ip = data.ip || '';
+        const country = data.country || '';
+        const region = data.region || '';
+        const isp = (data.connection?.isp || data.connection?.org || '').toLowerCase();
+        
+        setVpnInfo({
+          ip,
+          country,
+          region,
+          isp: data.connection?.isp || data.connection?.org || 'Unknown Provider',
+        });
+
+        // Heuristic signals for VPN/Proxy/Hosting:
+        const systemTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const ipTimezone = data.timezone?.id;
+        const isTimezoneMismatch = ipTimezone && systemTimezone && (ipTimezone !== systemTimezone);
+
+        const vpnKeywords = [
+          'vpn', 'proxy', 'hosting', 'vps', 'server', 'datacenter', 'cloud',
+          'dedicated', 'm247', 'linode', 'digitalocean', 'ovh', 'leaseweb',
+          'hetzner', 'vultr', 'choopa', 'psychz', 'packet', 'fastly', 'cloudflare'
+        ];
+        const isVpnIsp = vpnKeywords.some(keyword => isp.includes(keyword));
+
+        if (isTimezoneMismatch || isVpnIsp) {
+          setIsVpnBlocked(true);
+          return;
+        }
+        setIsVpnBlocked(false);
+        return;
+      }
+    } catch (err) {
+      console.warn('Primary VPN check failed, attempting fallback to ipinfo.io:', err);
+    }
+
+    // 3. Fallback attempt using ipinfo.io
+    try {
+      const res = await fetch('https://ipinfo.io/json');
+      if (res.ok) {
+        const data = await res.json();
+        const ip = data.ip || '';
+        const country = data.country || '';
+        const region = data.region || '';
+        const org = (data.org || '').toLowerCase();
+
+        setVpnInfo({
+          ip,
+          country,
+          region,
+          isp: data.org || 'Unknown Provider',
+        });
+
+        const vpnKeywords = [
+          'vpn', 'proxy', 'hosting', 'vps', 'server', 'datacenter', 'cloud',
+          'dedicated', 'm247', 'linode', 'digitalocean', 'ovh', 'leaseweb',
+          'hetzner', 'vultr', 'choopa', 'psychz', 'packet', 'fastly', 'cloudflare'
+        ];
+        const isVpnOrg = vpnKeywords.some(keyword => org.includes(keyword));
+
+        if (isVpnOrg) {
+          setIsVpnBlocked(true);
+          return;
+        }
+      }
+    } catch (fallbackErr) {
+      console.error('All VPN check endpoints failed:', fallbackErr);
+    } finally {
+      setIsCheckingVpn(false);
+    }
+  };
+
 
   // Load from localStorage on mount
   useEffect(() => {
@@ -211,11 +321,15 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
       }
       const secondsLeft = Math.max(0, Math.floor((endsAt - now) / 1000));
       setSummerRainTimer(secondsLeft);
+
+      // Perform VPN check after hydration completes
+      checkVpnConnection();
     } catch (e) {
       console.error('Failed to load local storage state:', e);
     }
     setIsHydrated(true);
   }, []);
+
 
   // Save to localStorage when state changes
   useEffect(() => {
@@ -903,15 +1017,29 @@ export function GameStateProvider({ children }: { children: React.ReactNode }) {
         cashOutRocket,
       }}
     >
-      {isHydrated ? children : <div className="min-h-screen bg-luxury-bg text-white flex items-center justify-center font-sans">
-        <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 border-2 border-gold-500/20 border-t-gold-500 rounded-full animate-spin"></div>
-          <span className="text-sm uppercase tracking-widest text-gold-500/60 font-medium">Initializing RainMoney...</span>
+      {isVpnBlocked ? (
+        <VpnBlockOverlay
+          ip={vpnInfo.ip}
+          country={vpnInfo.country}
+          region={vpnInfo.region}
+          isp={vpnInfo.isp}
+          onRefresh={checkVpnConnection}
+          isRefreshing={isCheckingVpn}
+        />
+      ) : isHydrated ? (
+        children
+      ) : (
+        <div className="min-h-screen bg-luxury-bg text-white flex items-center justify-center font-sans">
+          <div className="flex flex-col items-center gap-4">
+            <div className="w-12 h-12 border-2 border-gold-500/20 border-t-gold-500 rounded-full animate-spin"></div>
+            <span className="text-sm uppercase tracking-widest text-gold-500/60 font-medium">Initializing RainMoney...</span>
+          </div>
         </div>
-      </div>}
+      )}
     </GameStateContext.Provider>
   );
 }
+
 
 export function useGameState() {
   const context = useContext(GameStateContext);
