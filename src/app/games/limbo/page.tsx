@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { ArrowLeft, Play, ShieldAlert, Zap, RefreshCw, HelpCircle } from 'lucide-react';
 import Link from 'next/link';
+import { WinLoseOverlay } from '@/components/ui/WinLoseOverlay';
 
 export default function LimboGame() {
   const { credits, deductCredits, addCredits, addHistoryItem } = useGameState();
@@ -307,22 +308,20 @@ export default function LimboGame() {
 
               {/* Status sub-bar */}
               <div className="flex flex-col items-center text-center gap-1.5 mt-2">
-                {hasWon === true && (
-                  <span className="text-[10px] text-emerald-400 bg-emerald-950/40 border border-emerald-500/20 px-3 py-1 rounded-md uppercase tracking-wider font-extrabold animate-bounce">
-                    Target Met! (+${potentialPayout - betAmount} profit)
-                  </span>
-                )}
-                {hasWon === false && (
-                  <span className="text-[10px] text-rose-400 bg-rose-950/40 border border-rose-500/20 px-3 py-1 rounded-md uppercase tracking-wider font-extrabold">
-                    Target Missed (Result is lower)
-                  </span>
-                )}
                 {hasWon === null && (
                   <span className="text-[10px] text-neutral-500 uppercase tracking-widest font-semibold">
                     Set target and roll to begin
                   </span>
                 )}
               </div>
+
+            <WinLoseOverlay
+              isOpen={!isRolling && hasWon !== null}
+              onClose={() => setHasWon(null)}
+              outcome={hasWon ? 'win' : 'loss'}
+              multiplier={hasWon ? targetMultiplier : 0}
+              payout={hasWon ? potentialPayout : 0}
+            />
             </div>
           </Card>
 

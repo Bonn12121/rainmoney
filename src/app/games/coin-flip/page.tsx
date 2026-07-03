@@ -6,11 +6,12 @@ import { useAudio } from '@/hooks/useAudio';
 import { triggerWinConfetti } from '@/utils/confetti';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { ArrowLeft, Play, ShieldAlert, Award, Coins } from 'lucide-react';
+import { ArrowLeft, Play, ShieldAlert, Award, Coins, Crown, CloudRain } from 'lucide-react';
 import Link from 'next/link';
+import { WinLoseOverlay } from '@/components/ui/WinLoseOverlay';
 
 export default function CoinFlipGame() {
-  const { credits, deductCredits, addCredits, addHistoryItem } = useGameState();
+  const { credits, deductCredits, addCredits, addHistoryItem, language } = useGameState();
   const { playClick, playWin, playLoss, playPlop } = useAudio();
 
   // Inputs
@@ -51,12 +52,16 @@ export default function CoinFlipGame() {
     // Pick outcome side
     const outcome: 'heads' | 'tails' = Math.random() < 0.5 ? 'heads' : 'tails';
     
-    // Rotate coin (e.g. at least 5 complete rotations + target side rotation)
-    // Heads ends at 360 * rotations (0 deg front)
-    // Tails ends at 360 * rotations + 180 (180 deg back)
-    const baseRotations = 8;
-    const targetDeg = outcome === 'heads' ? baseRotations * 360 : baseRotations * 360 + 180;
-    setCoinRotation(targetDeg);
+    // Rotate coin (e.g. at least 6 complete rotations + target side rotation)
+    // Heads ends at 0 mod 360, Tails ends at 180 mod 360
+    setCoinRotation(prev => {
+      const additionalSpins = 6;
+      const currentMod360 = prev % 360;
+      const targetMod = outcome === 'heads' ? 0 : 180;
+      let diff = (targetMod - currentMod360 + 360) % 360;
+      if (diff === 0) diff = 360; // ensure it rotates if already on target side
+      return prev + (additionalSpins * 360) + diff;
+    });
 
     // Play flip tickers sound effects
     let coinTick = 0;
@@ -165,29 +170,36 @@ export default function CoinFlipGame() {
 
               {/* Side Selector */}
               <div className="flex flex-col gap-2">
-                <span className="text-xs font-bold text-neutral-400">Select Face side</span>
-                <div className="grid grid-cols-2 gap-2 bg-black border border-luxury-border p-1 rounded-xl">
+                <span className="text-xs font-bold text-neutral-400 uppercase tracking-widest text-[9px]">{language === 'vi' ? 'Chọn Mặt Xu' : 'Select Coin Face Side'}</span>
+                <div className="grid grid-cols-2 gap-3">
                   <button
                     onClick={() => { playClick(); setSelection('heads'); }}
                     disabled={isFlipping}
-                    className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                    className={`flex flex-col items-center justify-center py-4 px-3 rounded-2xl border transition-all duration-300 cursor-pointer ${
                       selection === 'heads'
-                        ? 'gold-gradient-bg text-black shadow-md'
-                        : 'text-neutral-400 hover:text-white bg-transparent'
+                        ? 'bg-yellow-500/10 border-yellow-500/60 shadow-[0_0_20px_rgba(250,204,21,0.15)] scale-[1.02]'
+                        : 'bg-black/50 border-luxury-border text-neutral-500 hover:text-neutral-300 hover:border-neutral-700'
                     }`}
                   >
-                    Heads (Crown)
+                    <Crown className={`w-8 h-8 mb-2 transition-transform duration-300 ${selection === 'heads' ? 'text-yellow-400 scale-110 drop-shadow-[0_0_8px_rgba(250,204,21,0.4)]' : 'text-neutral-600'}`} />
+                    <span className={`text-[10px] font-black tracking-widest uppercase ${selection === 'heads' ? 'text-yellow-400' : 'text-neutral-400'}`}>
+                      {language === 'vi' ? 'Vương Miện' : 'HEADS'}
+                    </span>
                   </button>
+
                   <button
                     onClick={() => { playClick(); setSelection('tails'); }}
                     disabled={isFlipping}
-                    className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                    className={`flex flex-col items-center justify-center py-4 px-3 rounded-2xl border transition-all duration-300 cursor-pointer ${
                       selection === 'tails'
-                        ? 'gold-gradient-bg text-black shadow-md'
-                        : 'text-neutral-400 hover:text-white bg-transparent'
+                        ? 'bg-yellow-500/10 border-yellow-500/60 shadow-[0_0_20px_rgba(250,204,21,0.15)] scale-[1.02]'
+                        : 'bg-black/50 border-luxury-border text-neutral-500 hover:text-neutral-300 hover:border-neutral-700'
                     }`}
                   >
-                    Tails (Rain)
+                    <CloudRain className={`w-8 h-8 mb-2 transition-transform duration-300 ${selection === 'tails' ? 'text-yellow-400 scale-110 drop-shadow-[0_0_8px_rgba(250,204,21,0.4)]' : 'text-neutral-600'}`} />
+                    <span className={`text-[10px] font-black tracking-widest uppercase ${selection === 'tails' ? 'text-yellow-400' : 'text-neutral-400'}`}>
+                      {language === 'vi' ? 'Cơn Mưa' : 'TAILS'}
+                    </span>
                   </button>
                 </div>
               </div>
@@ -272,21 +284,25 @@ export default function CoinFlipGame() {
           <Card className="bg-[#050505] border-luxury-border p-12 flex flex-col items-center justify-center min-h-[360px] relative overflow-hidden select-none">
             
             {/* Coin 3D scene */}
-            <div className="w-48 h-48 relative [perspective:800px] flex items-center justify-center mb-6">
+            <div className={`w-48 h-48 relative [perspective:800px] flex items-center justify-center mb-6 ${isFlipping ? 'animate-coin-fling' : ''}`}>
               <div 
                 className="w-40 h-40 rounded-full relative [transform-style:preserve-3d] transition-transform duration-[1200ms] cubic-bezier(0.25, 0.46, 0.45, 0.94)"
                 style={{ transform: `rotateY(${coinRotation}deg)` }}
               >
-                {/* HEADS SIDE (Front Face) */}
-                <div className="absolute inset-0 rounded-full gold-gradient-bg border-[3px] border-gold-100 flex flex-col items-center justify-center text-black [backface-visibility:hidden]">
-                  <span className="font-serif text-3xl font-black tracking-widest block uppercase">HEADS</span>
-                  <Award className="w-12 h-12 mt-1 stroke-[1.5]" />
+                 {/* HEADS SIDE (Front Face) */}
+                <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#fef08a] via-[#facc15] to-[#a16207] border-[6px] border-[#b45309] flex items-center justify-center [backface-visibility:hidden] shadow-[inset_0_4px_10px_rgba(255,255,255,0.4),0_8px_30px_rgba(0,0,0,0.7)]">
+                  <div className="w-[90%] h-[90%] rounded-full border border-dashed border-[#fef08a]/50 flex flex-col items-center justify-center p-3 select-none">
+                    <Crown className="w-16 h-16 text-[#fef08a] drop-shadow-[0_3px_5px_rgba(0,0,0,0.5)] stroke-[1.8]" />
+                    <span className="text-[7px] text-[#fef08a] font-black tracking-widest uppercase mt-1 opacity-75">RainMoney</span>
+                  </div>
                 </div>
 
                 {/* TAILS SIDE (Back Face) */}
-                <div className="absolute inset-0 rounded-full gold-gradient-bg border-[3px] border-gold-100 flex flex-col items-center justify-center text-black [transform:rotateY(180deg)] [backface-visibility:hidden]">
-                  <span className="font-serif text-3xl font-black tracking-widest block uppercase">TAILS</span>
-                  <span className="font-serif text-xs font-extrabold uppercase mt-1">RAINMONEY</span>
+                <div className="absolute inset-0 rounded-full bg-gradient-to-br from-[#fef08a] via-[#facc15] to-[#a16207] border-[6px] border-[#b45309] flex items-center justify-center [transform:rotateY(180deg)] [backface-visibility:hidden] shadow-[inset_0_4px_10px_rgba(255,255,255,0.4),0_8px_30px_rgba(0,0,0,0.7)]">
+                  <div className="w-[90%] h-[90%] rounded-full border border-dashed border-[#fef08a]/50 flex flex-col items-center justify-center p-3 select-none">
+                    <CloudRain className="w-16 h-16 text-[#fef08a] drop-shadow-[0_3px_5px_rgba(0,0,0,0.5)] stroke-[1.8]" />
+                    <span className="text-[7px] text-[#fef08a] font-black tracking-widest uppercase mt-1 opacity-75">Sandbox</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -296,11 +312,17 @@ export default function CoinFlipGame() {
               <div className="text-center animate-fade-in">
                 <span className="text-[10px] text-neutral-500 font-extrabold uppercase tracking-widest block">LANDED ON</span>
                 <h4 className="text-2xl font-black text-white uppercase mt-1">{coinSide}</h4>
-                <p className={`text-sm font-extrabold mt-1.5 ${hasWon ? 'text-emerald-500' : 'text-red-500'}`}>
-                  {hasWon ? `Won +$${potentialPayout}` : `Lost -$${betAmount}`}
-                </p>
               </div>
             )}
+
+            <WinLoseOverlay
+              isOpen={!isFlipping && hasWon !== null}
+              onClose={() => setHasWon(null)}
+              outcome={hasWon ? 'win' : 'loss'}
+              multiplier={hasWon ? payoutMultiplier : 0}
+              payout={hasWon ? potentialPayout : 0}
+              language={language}
+            />
 
             {isFlipping && (
               <div className="text-center animate-pulse">

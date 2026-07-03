@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/Button';
 import { ArrowLeft, Play, ShieldAlert, Award, Dices, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
+import { WinLoseOverlay } from '@/components/ui/WinLoseOverlay';
 
 export default function DiceGame() {
   const { credits, deductCredits, addCredits, addHistoryItem } = useGameState();
@@ -118,10 +119,10 @@ export default function DiceGame() {
         
         {/* Left Panel: Inputs */}
         <div className="flex flex-col gap-6">
-          <Card className="bg-[#0b0b0b] border-luxury-border">
+          <Card className="bg-[#0b0f19]/60 border-luxury-border/60 shadow-lg">
             <CardHeader className="p-5 border-b border-luxury-border/60">
               <CardTitle className="text-sm font-extrabold flex items-center gap-2">
-                <Dices className="w-4 h-4 text-gold-500" />
+                <Dices className="w-4 h-4 text-blue-400 animate-bounce" />
                 DICE CONTROLS
               </CardTitle>
             </CardHeader>
@@ -134,7 +135,7 @@ export default function DiceGame() {
                   <span>Balance: ${credits.toLocaleString()}</span>
                 </div>
                 <div className="relative">
-                  <span className="absolute left-4 top-3.5 text-neutral-500 font-extrabold text-xs">$</span>
+                  <span className="absolute left-4.5 top-3.5 text-neutral-500 font-extrabold text-xs">$</span>
                   <input
                     type="number"
                     min="0.01"
@@ -142,20 +143,20 @@ export default function DiceGame() {
                     value={betAmount}
                     onChange={(e) => setBetAmount(Math.max(0.01, parseFloat(e.target.value) || 0))}
                     disabled={isRolling}
-                    className="w-full bg-black border border-luxury-border focus:border-gold-500/50 rounded-xl pl-8 pr-16 py-3 text-sm text-white font-extrabold focus:outline-none disabled:opacity-50"
+                    className="w-full bg-black border border-luxury-border focus:border-blue-500/50 rounded-full pl-9 pr-24 py-3 text-sm text-white font-extrabold focus:outline-none disabled:opacity-50"
                   />
                   <div className="absolute right-2 top-2 flex gap-1">
                     <button
                       onClick={() => setBetAmount(prev => Math.max(0.01, Math.round((prev / 2) * 100) / 100))}
                       disabled={isRolling}
-                      className="px-2.5 py-1 bg-neutral-900 border border-luxury-border hover:border-neutral-700 text-[10px] text-neutral-400 font-extrabold rounded-lg disabled:opacity-50"
+                      className="px-2.5 py-1 bg-neutral-900 border border-luxury-border/60 hover:border-neutral-700 text-[10px] text-neutral-400 font-extrabold rounded-full disabled:opacity-50 transition-colors cursor-pointer"
                     >
                       /2
                     </button>
                     <button
                       onClick={() => setBetAmount(prev => Math.min(credits, Math.round(prev * 2 * 100) / 100))}
                       disabled={isRolling}
-                      className="px-2.5 py-1 bg-neutral-900 border border-luxury-border hover:border-neutral-700 text-[10px] text-neutral-400 font-extrabold rounded-lg disabled:opacity-50"
+                      className="px-2.5 py-1 bg-neutral-900 border border-luxury-border/60 hover:border-neutral-700 text-[10px] text-neutral-400 font-extrabold rounded-full disabled:opacity-50 transition-colors cursor-pointer"
                     >
                       x2
                     </button>
@@ -166,11 +167,11 @@ export default function DiceGame() {
               {/* Prediction Mode */}
               <div className="flex flex-col gap-2">
                 <span className="text-xs font-bold text-neutral-400">Prediction</span>
-                <div className="grid grid-cols-2 gap-2 bg-black border border-luxury-border p-1 rounded-xl">
+                <div className="grid grid-cols-2 gap-2 bg-black border border-luxury-border/60 p-1.5 rounded-full">
                   <button
                     onClick={() => { playClick(); setPrediction('under'); }}
                     disabled={isRolling}
-                    className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                    className={`py-2 text-xs font-extrabold rounded-full transition-all cursor-pointer ${
                       prediction === 'under'
                         ? 'gold-gradient-bg text-black shadow-md'
                         : 'text-neutral-400 hover:text-white bg-transparent'
@@ -181,7 +182,7 @@ export default function DiceGame() {
                   <button
                     onClick={() => { playClick(); setPrediction('over'); }}
                     disabled={isRolling}
-                    className={`py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                    className={`py-2 text-xs font-extrabold rounded-full transition-all cursor-pointer ${
                       prediction === 'over'
                         ? 'gold-gradient-bg text-black shadow-md'
                         : 'text-neutral-400 hover:text-white bg-transparent'
@@ -205,7 +206,7 @@ export default function DiceGame() {
                   value={rollTarget}
                   onChange={(e) => setRollTarget(parseInt(e.target.value))}
                   disabled={isRolling}
-                  className="w-full h-1 bg-neutral-800 rounded-lg appearance-none cursor-pointer accent-gold-500 disabled:opacity-50"
+                  className="w-full h-1.5 bg-neutral-900 border border-luxury-border/40 rounded-full appearance-none cursor-pointer accent-blue-500 disabled:opacity-50"
                 />
               </div>
 
@@ -216,10 +217,11 @@ export default function DiceGame() {
                 size="lg"
                 onClick={handleRoll}
                 disabled={isRolling || betAmount <= 0}
+                className="rounded-full shadow-[0_0_20px_rgba(59,130,246,0.25)] font-extrabold uppercase tracking-wider text-xs"
               >
                 {isRolling ? (
                   <span className="flex items-center gap-2">
-                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    <RefreshCw className="w-4 h-4 animate-spin text-black" />
                     Rolling Dice...
                   </span>
                 ) : (
@@ -231,9 +233,9 @@ export default function DiceGame() {
           </Card>
 
           {/* Dice Math Summary Card */}
-          <Card className="bg-[#0b0b0b]/60">
+          <Card className="bg-[#0b0f19]/40 border-luxury-border/50 shadow-md">
             <CardHeader className="p-4 border-b border-luxury-border/60">
-              <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest leading-none">Odds Breakdown</span>
+              <span className="text-[10px] text-neutral-500 font-extrabold uppercase tracking-widest leading-none">Odds Breakdown</span>
             </CardHeader>
             <CardContent className="p-4 flex flex-col gap-2.5 text-xs">
               <div className="flex justify-between">
@@ -242,17 +244,17 @@ export default function DiceGame() {
               </div>
               <div className="flex justify-between">
                 <span className="text-neutral-500 font-medium">Payout Multiplier</span>
-                <span className="text-gold-500 font-bold">{multiplier.toFixed(4)}x</span>
+                <span className="text-blue-400 font-bold">{multiplier.toFixed(4)}x</span>
               </div>
-              <div className="flex justify-between border-t border-luxury-border/60 pt-2.5">
+              <div className="flex justify-between border-t border-luxury-border/40 pt-2.5">
                 <span className="text-neutral-500 font-medium">Profit on Win</span>
-                <span className="text-emerald-500 font-bold">+${potentialPayout - betAmount}</span>
+                <span className="text-emerald-500 font-bold">+${(potentialPayout - betAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
               </div>
             </CardContent>
           </Card>
 
           {/* Statistics Grid */}
-          <Card className="bg-[#0b0b0b]/60">
+          <Card className="bg-[#0b0f19]/40 border-luxury-border/50 shadow-md">
             <CardContent className="p-4 grid grid-cols-3 gap-2 text-center text-xs">
               <div className="flex flex-col">
                 <span className="text-neutral-500 font-medium">Wins</span>
@@ -281,9 +283,9 @@ export default function DiceGame() {
             {recentRolls.map((roll, idx) => (
               <span 
                 key={idx} 
-                className={`px-3 py-1 rounded-md text-[10px] font-extrabold border ${
+                className={`px-3.5 py-1 rounded-full text-[10px] font-extrabold border ${
                   roll.win
-                    ? 'bg-emerald-950/20 text-emerald-400 border-emerald-500/20' 
+                    ? 'bg-emerald-950/20 text-emerald-400 border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]' 
                     : 'bg-red-950/20 text-red-400 border-red-500/20'
                 }`}
               >
@@ -293,18 +295,21 @@ export default function DiceGame() {
           </div>
 
           {/* Slider visual board */}
-          <Card className="bg-[#050505] border-luxury-border p-8 flex flex-col items-center justify-center min-h-[300px] relative overflow-hidden select-none">
+          <Card className="bg-gradient-to-br from-black via-[#040816] to-[#02050f] border-blue-500/15 p-8 flex flex-col items-center justify-center min-h-[300px] relative overflow-hidden select-none shadow-[0_0_50px_rgba(59,130,246,0.06)] rounded-3xl">
+            {/* Fine Grid pattern inside arena */}
+            <div className="absolute inset-0 bg-[linear-gradient(to_right,rgba(255,255,255,0.005)_1px,transparent_1px),linear-gradient(to_bottom,rgba(255,255,255,0.005)_1px,transparent_1px)] bg-[size:2rem_2rem] pointer-events-none -z-0"></div>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.06),transparent_65%)] pointer-events-none -z-0"></div>
             
             {/* Display large roll result ticker */}
-            <div className="flex flex-col items-center gap-2 mb-8 text-center">
+            <div className="flex flex-col items-center gap-2 mb-8 text-center relative z-10">
               <span className="text-[10px] text-neutral-500 font-extrabold uppercase tracking-widest leading-none">ROLL RESULT</span>
               <h3 className={`text-6xl font-black tracking-tight ${
                 isRolling 
                   ? 'text-neutral-500 animate-pulse' 
                   : hasWon === null
-                  ? 'text-neutral-600'
+                  ? 'text-neutral-650'
                   : hasWon
-                  ? 'text-emerald-500 glow-gold-large'
+                  ? 'text-emerald-400 drop-shadow-[0_0_20px_rgba(52,211,153,0.3)]'
                   : 'text-red-500'
               }`}>
                 {isRolling 
@@ -313,25 +318,25 @@ export default function DiceGame() {
                   ? rollResult.toFixed(2) 
                   : '00.00'}
               </h3>
-              {hasWon !== null && !isRolling && (
-                <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider ${
-                  hasWon ? 'bg-emerald-950/40 text-emerald-400 border border-emerald-500/20' : 'bg-red-950/40 text-red-400 border border-red-500/20'
-                }`}>
-                  {hasWon ? 'WINNER!' : 'LOST'}
-                </span>
-              )}
+            <WinLoseOverlay
+              isOpen={!isRolling && hasWon !== null}
+              onClose={() => setHasWon(null)}
+              outcome={hasWon ? 'win' : 'loss'}
+              multiplier={hasWon ? multiplier : 0}
+              payout={hasWon ? potentialPayout : 0}
+            />
             </div>
 
             {/* Custom Interactive Slider Visual */}
-            <div className="w-full flex flex-col gap-6 px-4">
+            <div className="w-full flex flex-col gap-6 px-4 relative z-10">
               
               {/* Range track representation */}
-              <div className="w-full h-4 bg-neutral-900 border border-luxury-border rounded-full relative overflow-hidden">
+              <div className="w-full h-4 bg-neutral-900 border border-luxury-border/60 rounded-full relative overflow-hidden">
                 {/* Win and Loss region color blocks */}
                 {prediction === 'under' ? (
                   <>
                     <div 
-                      className="absolute left-0 top-0 bottom-0 gold-gradient-bg opacity-30 border-r border-gold-500/40"
+                      className="absolute left-0 top-0 bottom-0 bg-blue-500/25 border-r border-blue-400/30"
                       style={{ width: `${rollTarget}%` }}
                     ></div>
                     <div 
@@ -346,7 +351,7 @@ export default function DiceGame() {
                       style={{ width: `${rollTarget}%` }}
                     ></div>
                     <div 
-                      className="absolute right-0 top-0 bottom-0 gold-gradient-bg opacity-30"
+                      className="absolute right-0 top-0 bottom-0 bg-blue-500/25"
                       style={{ width: `${100 - rollTarget}%` }}
                     ></div>
                   </>
@@ -355,10 +360,10 @@ export default function DiceGame() {
                 {/* Rolled Marker pointer */}
                 {(rollResult !== null || isRolling) && (
                   <div 
-                    className="absolute top-0 bottom-0 w-1 bg-white shadow-2xl transition-all duration-300"
+                    className="absolute top-0 bottom-0 w-1 bg-white shadow-2xl transition-all duration-300 z-10"
                     style={{ left: `${isRolling ? rollingTicker : rollResult}%` }}
                   >
-                    <div className="absolute top-[-8px] left-[-6px] w-3 h-3 rounded-full bg-white border border-black shadow"></div>
+                    <div className="absolute top-[-8px] left-[-6px] w-3 h-3 rounded-full bg-white border-2 border-blue-500 shadow-md"></div>
                   </div>
                 )}
               </div>
@@ -376,9 +381,9 @@ export default function DiceGame() {
           </Card>
 
           {/* Game Rules Description */}
-          <Card className="bg-[#0b0b0b]/40 border-luxury-border/60">
+          <Card className="bg-[#0b0f19]/40 border-luxury-border/60">
             <CardContent className="p-5 flex gap-3 text-xs leading-relaxed text-neutral-400 font-medium">
-              <ShieldAlert className="w-5 h-5 text-gold-500 shrink-0 mt-0.5" />
+              <ShieldAlert className="w-5 h-5 text-blue-400 shrink-0 mt-0.5" />
               <div>
                 <p>
                   <strong>Dice Rules</strong>: Enter your bet, choose prediction target boundaries (Roll Under/Over), and adjust the slider to set your threshold. 

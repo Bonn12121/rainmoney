@@ -8,18 +8,21 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/Button';
 import { ArrowLeft, Play, ShieldAlert, Sparkles, HelpCircle, Spade, Apple, Disc, Layers } from 'lucide-react';
 import Link from 'next/link';
+import { CustomEmoji } from '@/components/ui/CustomEmoji';
 
 type CasinoTab = 'slots' | 'roulette' | 'reveal';
 
+type CasinoSymbolType = 'cherry' | 'lemon' | 'orange' | 'grape' | 'bell' | 'diamond' | 'seven';
+
 // SLOTS CONFIG
 const SLOT_SYMBOLS = [
-  { char: '🍒', name: 'Cherry', value: 10 },
-  { char: '🍋', name: 'Lemon', value: 10 },
-  { char: '🍊', name: 'Orange', value: 10 },
-  { char: '🍇', name: 'Grape', value: 15 },
-  { char: '🔔', name: 'Bell', value: 25 },
-  { char: '💎', name: 'Diamond', value: 50 },
-  { char: '7️⃣', name: 'Seven', value: 100 },
+  { char: 'cherry' as CasinoSymbolType, name: 'Cherry', value: 10 },
+  { char: 'lemon' as CasinoSymbolType, name: 'Lemon', value: 10 },
+  { char: 'orange' as CasinoSymbolType, name: 'Orange', value: 10 },
+  { char: 'grape' as CasinoSymbolType, name: 'Grape', value: 15 },
+  { char: 'bell' as CasinoSymbolType, name: 'Bell', value: 25 },
+  { char: 'diamond' as CasinoSymbolType, name: 'Diamond', value: 50 },
+  { char: 'seven' as CasinoSymbolType, name: 'Seven', value: 100 },
 ];
 
 // ROULETTE CONFIG
@@ -36,7 +39,7 @@ export default function CasinoGame() {
 
   // --- SLOTS STATES ---
   const [slotsSpinning, setSlotsSpinning] = useState<boolean>(false);
-  const [reels, setReels] = useState<string[]>(['🍒', '🍒', '🍒']);
+  const [reels, setReels] = useState<CasinoSymbolType[]>(['cherry', 'cherry', 'cherry']);
   const [slotsOutcome, setSlotsOutcome] = useState<string | null>(null);
 
   // --- ROULETTE STATES ---
@@ -230,7 +233,7 @@ export default function CasinoGame() {
 
     // Multipliers for reveal cards (1 crash card, others range from 0.5x to 8x)
     const options = [
-      { mult: 0, label: '☠️ Crash' },
+      { mult: 0, label: 'Crash' },
       { mult: 0.5, label: '0.5x Mini' },
       { mult: 1.2, label: '1.2x Payout' },
       { mult: 2.0, label: '2.0x Double' },
@@ -483,13 +486,13 @@ export default function CasinoGame() {
                   {reels.map((char, index) => (
                     <div 
                       key={index} 
-                      className={`w-20 h-24 rounded-xl bg-black border border-luxury-border flex items-center justify-center text-4xl shadow-md transition-all duration-100 ${
+                      className={`w-20 h-24 rounded-xl bg-black border border-luxury-border flex items-center justify-center shadow-md transition-all duration-100 ${
                         slotsSpinning ? 'scale-95 border-pink-500/50' : ''
                       }`}
                     >
-                      <span className={slotsSpinning ? 'animate-bounce' : ''}>
-                        {char}
-                      </span>
+                      <div className={slotsSpinning ? 'animate-bounce' : ''}>
+                        <CustomEmoji name={char} className="w-12 h-12" />
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -581,11 +584,14 @@ export default function CasinoGame() {
                           }`}
                         >
                           {isRevealed ? (
-                            <div className="text-center flex flex-col gap-1">
-                              <span className="text-xs uppercase font-extrabold">
+                            <div className="text-center flex flex-col items-center gap-1.5">
+                              <span className="text-[10px] uppercase font-extrabold text-neutral-500">
                                 {wasChosen ? 'Yours' : 'Prize'}
                               </span>
-                              <span className="text-sm font-black text-white">
+                              {card.mult === 0 ? (
+                                <CustomEmoji name="skull" className="w-8 h-8" />
+                              ) : null}
+                              <span className="text-sm font-black text-white mt-1">
                                 {card.label}
                               </span>
                             </div>

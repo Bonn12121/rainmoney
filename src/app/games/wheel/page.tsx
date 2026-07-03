@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/Button';
 import { ArrowLeft, Play, ShieldAlert, Award, Disc, RotateCw } from 'lucide-react';
 import Link from 'next/link';
+import { WinLoseOverlay } from '@/components/ui/WinLoseOverlay';
 
 type RiskLevel = 'low' | 'medium' | 'high';
 
@@ -416,18 +417,13 @@ export default function WheelGame() {
               <canvas ref={canvasRef} className="block shadow-inner" />
             </div>
 
-            {/* Standalone Outcome status panel */}
-            {!isSpinning && selectedMultiplier !== null && (
-              <div className="mt-8 text-center animate-fade-in">
-                <span className="text-[10px] text-neutral-500 font-extrabold uppercase tracking-widest block leading-none">LANDED ON MULTIPLIER</span>
-                <h4 className="text-3xl font-black text-white uppercase mt-2">{selectedMultiplier.toFixed(1)}x</h4>
-                <p className={`text-xs font-extrabold mt-1.5 ${outcomeStatus === 'win' ? 'text-emerald-500' : 'text-red-500'}`}>
-                  {outcomeStatus === 'win' 
-                    ? `Payout +$${(Math.round(betAmount * selectedMultiplier * 100) / 100).toLocaleString()}` 
-                    : `Loss -$${betAmount.toLocaleString()}`}
-                </p>
-              </div>
-            )}
+            <WinLoseOverlay
+              isOpen={!isSpinning && selectedMultiplier !== null}
+              onClose={() => { setSelectedMultiplier(null); setOutcomeStatus(null); }}
+              outcome={outcomeStatus}
+              multiplier={selectedMultiplier || 0}
+              payout={betAmount * (selectedMultiplier || 0)}
+            />
 
             {isSpinning && (
               <div className="mt-8 text-center animate-pulse">

@@ -8,34 +8,79 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/Button';
 import { ArrowLeft, Rocket, Play, ShieldAlert, Award, Activity } from 'lucide-react';
 import Link from 'next/link';
+import { WinLoseOverlay } from '@/components/ui/WinLoseOverlay';
 
 type GameState = 'idle' | 'countdown' | 'flying' | 'crashed';
 
 export default function RocketGame() {
-  const { credits, deductCredits, addCredits, addHistoryItem } = useGameState();
+  const { 
+    credits, 
+    rocketState,
+    rocketMultiplier,
+    rocketCountdown,
+    rocketRecentCrashes,
+    rocketHasBet,
+    rocketHasCashedOut,
+    rocketWinAmount,
+    placeRocketBet,
+    cancelRocketBet,
+    cashOutRocket
+  } = useGameState();
+
   const { playClick, playWin, playLoss, playPlop, startRocketEngine, updateRocketEnginePitch, stopRocketEngine } = useAudio();
 
   // Inputs
   const [betAmount, setBetAmount] = useState<number>(10);
   const [autoCashout, setAutoCashout] = useState<string>('');
 
-  // Game States
+  // Game States (Local Visual State Hooks synced to global ones for animations)
   const [gameState, setGameState] = useState<GameState>('idle');
   const [currentMultiplier, setCurrentMultiplier] = useState<number>(1.00);
-  const [crashPoint, setCrashPoint] = useState<number>(0);
   const [hasBet, setHasBet] = useState<boolean>(false);
   const [hasCashedOut, setHasCashedOut] = useState<boolean>(false);
   const [winAmount, setWinAmount] = useState<number>(0);
   const [countdown, setCountdown] = useState<number>(10);
-  
-  // History & Stats
   const [recentCrashes, setRecentCrashes] = useState<number[]>([1.42, 2.85, 1.12, 5.40, 1.03, 12.50]);
+  const [dismissedCrash, setDismissedCrash] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (gameState === 'flying' || gameState === 'countdown') {
+      setDismissedCrash(false);
+    }
+  }, [gameState]);
+
+  // Session Statistics
   const [gameStats, setGameStats] = useState({ wins: 0, losses: 0, profit: 0 });
 
   // Refs for Animation
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const animationFrameRef = useRef<number | null>(null);
-  const startTimeRef = useRef<number>(0);
+
+  // Sync state with global provider states
+  useEffect(() => {
+    setGameState(rocketState);
+    setCurrentMultiplier(rocketMultiplier);
+    setCountdown(rocketCountdown);
+    setRecentCrashes(rocketRecentCrashes);
+    setHasBet(rocketHasBet);
+    setHasCashedOut(rocketHasCashedOut);
+    setWinAmount(rocketWinAmount);
+
+    // Audio effects engine transitions
+    if (rocketState === 'flying') {
+      startRocketEngine();
+      updateRocketEnginePitch(rocketMultiplier);
+    } else {
+      stopRocketEngine();
+    }
+  }, [
+    rocketState, 
+    rocketMultiplier, 
+    rocketCountdown, 
+    rocketRecentCrashes, 
+    rocketHasBet, 
+    rocketHasCashedOut, 
+    rocketWinAmount
+  ]);
 
   // Sound management
   useEffect(() => {
@@ -44,127 +89,7 @@ export default function RocketGame() {
     };
   }, []);
 
-  // Set crash point formula: 3% instant crash, otherwise Pareto-like distribution
-  const generateCrashPoint = (): number => {
-    if (Math.random() < 0.03) return 1.00;
-    const value = 0.97 / (1.0 - Math.random());
-    return Math.max(1.01, parseFloat(Math.min(100.00, value).toFixed(2)));
-  };
-
-  // Auto-start betting phase when idle
-  useEffect(() => {
-    if (gameState === 'idle') {
-      setGameState('countdown');
-      setCountdown(10);
-    }
-  }, [gameState]);
-
-  // Place a bet during countdown
-  const handlePlaceBet = () => {
-    if (gameState !== 'countdown' || hasBet) return;
-    if (betAmount < 0.01 || betAmount > credits) {
-      alert('Invalid bet amount or insufficient credits.');
-      return;
-    }
-
-    const success = deductCredits(betAmount);
-    if (!success) return;
-
-    setHasBet(true);
-    setHasCashedOut(false);
-    setWinAmount(0);
-    playClick();
-  };
-
-  // Cancel a bet during countdown
-  const handleCancelBet = () => {
-    if (gameState !== 'countdown' || !hasBet) return;
-    addCredits(betAmount);
-    setHasBet(false);
-    playClick();
-  };
-
-  // Countdown timer
-  useEffect(() => {
-    if (gameState !== 'countdown') return;
-
-    if (countdown > 0) {
-      const timer = setTimeout(() => {
-        if (countdown <= 3) {
-          playPlop();
-        }
-        setCountdown(prev => prev - 1);
-      }, 1000);
-      return () => clearTimeout(timer);
-    } else {
-      const targetCrash = generateCrashPoint();
-      setCrashPoint(targetCrash);
-      setGameState('flying');
-      startRocketEngine();
-      startTimeRef.current = Date.now();
-    }
-  }, [countdown, gameState]);
-
-  // Auto restart after crash
-  useEffect(() => {
-    if (gameState !== 'crashed') return;
-
-    const timer = setTimeout(() => {
-      setHasBet(false);
-      setHasCashedOut(false);
-      setWinAmount(0);
-      setCurrentMultiplier(1.00);
-      setCountdown(10);
-      setGameState('countdown');
-    }, 3000);
-
-    return () => clearTimeout(timer);
-  }, [gameState]);
-
-  // Flying multiplier ticker
-  useEffect(() => {
-    if (gameState !== 'flying') return;
-
-    const tick = () => {
-      const elapsedMs = Date.now() - startTimeRef.current;
-      // Exponential curve for multiplier: mult = 1.00 + (elapsedSec)^1.4 * 0.06
-      const elapsedSec = elapsedMs / 1000;
-      const mult = 1.00 + Math.pow(elapsedSec, 1.5) * 0.07;
-      const formattedMult = parseFloat(mult.toFixed(2));
-
-      if (formattedMult >= crashPoint) {
-        // Explode
-        setCurrentMultiplier(crashPoint);
-        setGameState('crashed');
-        stopRocketEngine();
-        playLoss();
-        setRecentCrashes(prev => [crashPoint, ...prev.slice(0, 5)]);
-
-        if (hasBet && !hasCashedOut) {
-          addHistoryItem('Rocket', betAmount, 0, 0, 'loss');
-          setGameStats(prev => ({ ...prev, losses: prev.losses + 1, profit: prev.profit - betAmount }));
-        }
-      } else {
-        setCurrentMultiplier(formattedMult);
-        updateRocketEnginePitch(formattedMult);
-
-        // Auto Cashout check
-        const parsedAuto = parseFloat(autoCashout);
-        if (hasBet && !hasCashedOut && !isNaN(parsedAuto) && parsedAuto > 1.00 && formattedMult >= parsedAuto) {
-          triggerCashout(formattedMult);
-        }
-
-        animationFrameRef.current = requestAnimationFrame(tick);
-      }
-    };
-
-    animationFrameRef.current = requestAnimationFrame(tick);
-    return () => {
-      if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
-    };
-  }, [gameState, crashPoint, hasBet, hasCashedOut, autoCashout, betAmount]);
-
-  // Canvas drawing
+  // Canvas drawing & animation loop
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -231,8 +156,8 @@ export default function RocketGame() {
         // Generate rocket fire particles
         if (gameState === 'flying' && Math.random() > 0.3) {
           particleArr.push({
-            x: endX,
-            y: endY,
+            x: endX - 10 * Math.cos(Math.atan2(2 * progress * (endY - startY), endX - startX)),
+            y: endY - 10 * Math.sin(Math.atan2(2 * progress * (endY - startY), endX - startX)),
             size: Math.random() * 5 + 2,
             alpha: 1,
             speedY: Math.random() * 2 - 1,
@@ -247,7 +172,7 @@ export default function RocketGame() {
           if (p.alpha <= 0) {
             particleArr.splice(index, 1);
           } else {
-            ctx.fillStyle = `rgba(59, 130, 246, ${p.alpha * 0.6})`;
+            ctx.fillStyle = `rgba(239, 68, 68, ${p.alpha * 0.6})`;
             ctx.beginPath();
             ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
             ctx.fill();
@@ -266,14 +191,9 @@ export default function RocketGame() {
           ctx.fillStyle = '#ef4444';
           ctx.fill();
         } else {
-          // Draw simple luxury styled circle indicating the rocket pointer
-          ctx.beginPath();
-          ctx.arc(endX, endY, 10, 0, Math.PI * 2);
-          ctx.fillStyle = '#ffffff';
-          ctx.fill();
-          ctx.strokeStyle = '#3b82f6';
-          ctx.lineWidth = 3;
-          ctx.stroke();
+          // Draw dynamically rotated rocket
+          const tangentAngle = Math.atan2(2 * progress * (endY - startY), endX - startX);
+          drawCanvasRocket(ctx, endX, endY, tangentAngle);
         }
       }
 
@@ -288,29 +208,59 @@ export default function RocketGame() {
     };
   }, [gameState, currentMultiplier]);
 
-  // Cashout trigger
-  const triggerCashout = (multiplier: number) => {
-    if (hasCashedOut || gameState !== 'flying') return;
+  // Listen to window events to play sounds and update session statistics
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
 
-    setHasCashedOut(true);
-    stopRocketEngine();
-    
-    const payout = Math.round(betAmount * multiplier * 100) / 100;
-    setWinAmount(payout);
-    addCredits(payout);
-    playWin();
-    triggerWinConfetti();
-    addHistoryItem('Rocket', betAmount, multiplier, payout, 'win');
+    const handleCrashed = (e: CustomEvent) => {
+      const { hadBet, betAmount: amt } = e.detail;
+      playLoss();
+      if (hadBet) {
+        setGameStats(prev => ({
+          ...prev,
+          losses: prev.losses + 1,
+          profit: prev.profit - amt
+        }));
+      }
+    };
 
-    setGameStats(prev => ({
-      ...prev,
-      wins: prev.wins + 1,
-      profit: prev.profit + (payout - betAmount),
-    }));
+    const handleCashedOut = (e: CustomEvent) => {
+      const { multiplier: mult, amount: payout } = e.detail;
+      playWin();
+      triggerWinConfetti();
+      setGameStats(prev => ({
+        ...prev,
+        wins: prev.wins + 1,
+        profit: prev.profit + (payout - betAmount),
+      }));
+    };
+
+    window.addEventListener('rocket_crashed' as any, handleCrashed);
+    window.addEventListener('rocket_cashed_out' as any, handleCashedOut);
+
+    return () => {
+      window.removeEventListener('rocket_crashed' as any, handleCrashed);
+      window.removeEventListener('rocket_cashed_out' as any, handleCashedOut);
+    };
+  }, [betAmount]);
+
+  const handlePlaceBet = () => {
+    if (rocketState !== 'countdown' || rocketHasBet) return;
+    if (betAmount < 0.01 || betAmount > credits) return;
+    const success = placeRocketBet(betAmount, autoCashout);
+    if (success) {
+      playClick();
+    }
+  };
+
+  const handleCancelBet = () => {
+    if (rocketState !== 'countdown' || !rocketHasBet) return;
+    cancelRocketBet();
+    playClick();
   };
 
   const handleCashoutPress = () => {
-    triggerCashout(currentMultiplier);
+    cashOutRocket();
   };
 
   return (
@@ -437,7 +387,7 @@ export default function RocketGame() {
                         <span>Cashed Out (+${winAmount})</span>
                       ) : (
                         <span>
-                          CASH OUT @ ${(currentMultiplier * betAmount).toFixed(0)}
+                          CASH OUT ${(currentMultiplier * betAmount).toFixed(2)}
                         </span>
                       )}
                     </Button>
@@ -451,7 +401,7 @@ export default function RocketGame() {
 
               {gameState === 'crashed' && (
                 <Button variant="danger" fullWidth size="lg" disabled>
-                  Crashed @ {currentMultiplier.toFixed(2)}x
+                  Crashed at {currentMultiplier.toFixed(2)}x
                 </Button>
               )}
 
@@ -537,7 +487,7 @@ export default function RocketGame() {
               {gameState === 'crashed' && (
                 <div className="flex flex-col items-center gap-2">
                   <span className="text-4xl font-black text-red-500 tracking-tight uppercase">
-                    CRASHED @ {currentMultiplier.toFixed(2)}x
+                    CRASHED AT {currentMultiplier.toFixed(2)}x
                   </span>
                   <span className="text-[10px] text-neutral-500 uppercase tracking-widest font-bold">ROCKET DESTROYED</span>
                 </div>
@@ -546,6 +496,14 @@ export default function RocketGame() {
 
             {/* Visual Canvas Element */}
             <canvas ref={canvasRef} className="w-full rounded-2xl block min-h-[360px]" />
+
+            <WinLoseOverlay
+              isOpen={gameState === 'crashed' && hasBet && !dismissedCrash}
+              onClose={() => setDismissedCrash(true)}
+              outcome={hasCashedOut ? 'win' : 'loss'}
+              multiplier={hasCashedOut ? (winAmount / betAmount) : 0}
+              payout={hasCashedOut ? winAmount : 0}
+            />
           </Card>
 
           {/* Game Rules Description */}
@@ -569,3 +527,264 @@ export default function RocketGame() {
     </div>
   );
 }
+
+// ==========================================
+// LOW POLY SPACE VISUAL HELPERS
+// ==========================================
+
+const drawLowPolyMoon = (ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) => {
+  const vertices = [[cx, cy]];
+  const rings = [r * 0.35, r * 0.7, r];
+  const sectors = 8;
+  
+  for (let ringIdx = 0; ringIdx < rings.length; ringIdx++) {
+    const rad = rings[ringIdx];
+    for (let sec = 0; sec < sectors; sec++) {
+      const angle = (sec * Math.PI * 2) / sectors + (ringIdx * 0.2);
+      const jitterR = Math.sin(sec * 1.7 + ringIdx * 2.3) * (rad * 0.05);
+      const jitterA = Math.cos(sec * 2.1 - ringIdx * 1.5) * 0.05;
+      const x = cx + (rad + jitterR) * Math.cos(angle + jitterA);
+      const y = cy + (rad + jitterR) * Math.sin(angle + jitterA);
+      vertices.push([x, y]);
+    }
+  }
+
+  for (let i = 0; i < sectors; i++) {
+    const v0 = 0;
+    const v1 = 1 + i;
+    const v2 = 1 + ((i + 1) % sectors);
+    const midAngle = (i + 0.5) * (Math.PI * 2 / sectors);
+    const lightFactor = Math.max(0.15, Math.cos(midAngle - Math.PI * 0.75) * 0.5 + 0.5);
+    const gray = Math.floor(100 + lightFactor * 80);
+    ctx.fillStyle = `rgb(${gray}, ${gray + 5}, ${gray + 12})`;
+    
+    ctx.beginPath();
+    ctx.moveTo(vertices[v0][0], vertices[v0][1]);
+    ctx.lineTo(vertices[v1][0], vertices[v1][1]);
+    ctx.lineTo(vertices[v2][0], vertices[v2][1]);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  for (let ringIdx = 0; ringIdx < 2; ringIdx++) {
+    const startInner = 1 + ringIdx * sectors;
+    const startOuter = 1 + (ringIdx + 1) * sectors;
+    for (let i = 0; i < sectors; i++) {
+      const nextIdx = (i + 1) % sectors;
+      const i0 = startInner + i;
+      const i1 = startInner + nextIdx;
+      const o0 = startOuter + i;
+      const o1 = startOuter + nextIdx;
+
+      const midAngle = (i + 0.3) * (Math.PI * 2 / sectors) + ringIdx * 0.1;
+      const lightFactor = Math.max(0.15, Math.cos(midAngle - Math.PI * 0.75) * 0.5 + 0.5);
+      const gray = Math.floor(100 + lightFactor * 80 - ringIdx * 15);
+      ctx.fillStyle = `rgb(${gray}, ${gray + 5}, ${gray + 12})`;
+      
+      ctx.beginPath();
+      ctx.moveTo(vertices[i0][0], vertices[i0][1]);
+      ctx.lineTo(vertices[o0][0], vertices[o0][1]);
+      ctx.lineTo(vertices[o1][0], vertices[o1][1]);
+      ctx.closePath();
+      ctx.fill();
+
+      const midAngle2 = (i + 0.7) * (Math.PI * 2 / sectors) + ringIdx * 0.1;
+      const lightFactor2 = Math.max(0.15, Math.cos(midAngle2 - Math.PI * 0.75) * 0.5 + 0.5);
+      const gray2 = Math.floor(100 + lightFactor2 * 80 - ringIdx * 15);
+      ctx.fillStyle = `rgb(${gray2}, ${gray2 + 5}, ${gray2 + 12})`;
+
+      ctx.beginPath();
+      ctx.moveTo(vertices[i0][0], vertices[i0][1]);
+      ctx.lineTo(vertices[i1][0], vertices[i1][1]);
+      ctx.lineTo(vertices[o1][0], vertices[o1][1]);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+};
+
+const drawLowPolySaturn = (ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number) => {
+  const vertices = [[cx, cy]];
+  const rings = [r * 0.35, r * 0.7, r];
+  const sectors = 8;
+  
+  for (let ringIdx = 0; ringIdx < rings.length; ringIdx++) {
+    const rad = rings[ringIdx];
+    for (let sec = 0; sec < sectors; sec++) {
+      const angle = (sec * Math.PI * 2) / sectors - (ringIdx * 0.3);
+      const jitterR = Math.sin(sec * 1.2 + ringIdx * 1.8) * (rad * 0.04);
+      const x = cx + (rad + jitterR) * Math.cos(angle);
+      const y = cy + (rad + jitterR) * Math.sin(angle);
+      vertices.push([x, y]);
+    }
+  }
+
+  const drawRingSegment = (innerRadiusX: number, innerRadiusY: number, outerRadiusX: number, outerRadiusY: number, startAngle: number, endAngle: number, color: string) => {
+    ctx.fillStyle = color;
+    const ringSectors = 12;
+    const delta = (endAngle - startAngle) / ringSectors;
+    
+    ctx.beginPath();
+    for (let i = 0; i <= ringSectors; i++) {
+      const ang = startAngle + i * delta;
+      const rx = cx + innerRadiusX * Math.cos(ang);
+      const ry = cy + innerRadiusY * Math.sin(ang);
+      if (i === 0) ctx.moveTo(rx, ry);
+      else ctx.lineTo(rx, ry);
+    }
+    for (let i = ringSectors; i >= 0; i--) {
+      const ang = startAngle + i * delta;
+      const rx = cx + outerRadiusX * Math.cos(ang);
+      const ry = cy + outerRadiusY * Math.sin(ang);
+      ctx.lineTo(rx, ry);
+    }
+    ctx.closePath();
+    ctx.fill();
+  };
+
+  // Back ring
+  drawRingSegment(r * 1.4, r * 0.4, r * 2.0, r * 0.6, Math.PI * 1.05, Math.PI * 1.95, '#78350f');
+  drawRingSegment(r * 1.4, r * 0.4, r * 2.0, r * 0.6, Math.PI * 1.15, Math.PI * 1.85, '#9a3412');
+
+  // Planet body
+  for (let i = 0; i < sectors; i++) {
+    const v0 = 0;
+    const v1 = 1 + i;
+    const v2 = 1 + ((i + 1) % sectors);
+    const midAngle = (i + 0.5) * (Math.PI * 2 / sectors);
+    const lightFactor = Math.max(0.15, Math.cos(midAngle - Math.PI * 0.75) * 0.5 + 0.5);
+    
+    const red = Math.floor(180 + lightFactor * 65);
+    const green = Math.floor(110 + lightFactor * 55);
+    const blue = Math.floor(30 + lightFactor * 25);
+    ctx.fillStyle = `rgb(${red}, ${green}, ${blue})`;
+    
+    ctx.beginPath();
+    ctx.moveTo(vertices[v0][0], vertices[v0][1]);
+    ctx.lineTo(vertices[v1][0], vertices[v1][1]);
+    ctx.lineTo(vertices[v2][0], vertices[v2][1]);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  for (let ringIdx = 0; ringIdx < 2; ringIdx++) {
+    const startInner = 1 + ringIdx * sectors;
+    const startOuter = 1 + (ringIdx + 1) * sectors;
+    for (let i = 0; i < sectors; i++) {
+      const nextIdx = (i + 1) % sectors;
+      const i0 = startInner + i;
+      const i1 = startInner + nextIdx;
+      const o0 = startOuter + i;
+      const o1 = startOuter + nextIdx;
+
+      const midAngle = (i + 0.3) * (Math.PI * 2 / sectors) - ringIdx * 0.15;
+      const lightFactor = Math.max(0.15, Math.cos(midAngle - Math.PI * 0.75) * 0.5 + 0.5);
+      const red = Math.floor(160 + lightFactor * 65 - ringIdx * 20);
+      const green = Math.floor(95 + lightFactor * 55 - ringIdx * 15);
+      const blue = Math.floor(25 + lightFactor * 20 - ringIdx * 5);
+      ctx.fillStyle = `rgb(${red}, ${green}, ${blue})`;
+      
+      ctx.beginPath();
+      ctx.moveTo(vertices[i0][0], vertices[i0][1]);
+      ctx.lineTo(vertices[o0][0], vertices[o0][1]);
+      ctx.lineTo(vertices[o1][0], vertices[o1][1]);
+      ctx.closePath();
+      ctx.fill();
+
+      const midAngle2 = (i + 0.7) * (Math.PI * 2 / sectors) - ringIdx * 0.15;
+      const lightFactor2 = Math.max(0.15, Math.cos(midAngle2 - Math.PI * 0.75) * 0.5 + 0.5);
+      const red2 = Math.floor(160 + lightFactor2 * 65 - ringIdx * 20);
+      const green2 = Math.floor(95 + lightFactor2 * 55 - ringIdx * 15);
+      const blue2 = Math.floor(25 + lightFactor2 * 20 - ringIdx * 5);
+      ctx.fillStyle = `rgb(${red2}, ${green2}, ${blue2})`;
+
+      ctx.beginPath();
+      ctx.moveTo(vertices[i0][0], vertices[i0][1]);
+      ctx.lineTo(vertices[i1][0], vertices[i1][1]);
+      ctx.lineTo(vertices[o1][0], vertices[o1][1]);
+      ctx.closePath();
+      ctx.fill();
+    }
+  }
+
+  // Front ring
+  drawRingSegment(r * 1.4, r * 0.4, r * 2.0, r * 0.6, 0.05, Math.PI * 0.95, '#ea580c');
+  drawRingSegment(r * 1.5, r * 0.43, r * 1.8, r * 0.52, 0.1, Math.PI * 0.9, '#f97316');
+};
+
+const drawCanvasRocket = (ctx: CanvasRenderingContext2D, x: number, y: number, angleRad: number) => {
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angleRad);
+  
+  // Flame trail (thick and robust)
+  ctx.beginPath();
+  ctx.moveTo(-18, 0);
+  ctx.lineTo(-32, -9);
+  ctx.lineTo(-42, 0);
+  ctx.lineTo(-32, 9);
+  ctx.closePath();
+  ctx.fillStyle = Math.random() > 0.5 ? '#f59e0b' : '#ef4444';
+  ctx.fill();
+  
+  // Main Rocket fuselage (Thick capsule cylinder)
+  ctx.beginPath();
+  ctx.moveTo(-15, -12);
+  ctx.lineTo(8, -12);
+  ctx.quadraticCurveTo(24, -8, 24, 0);
+  ctx.quadraticCurveTo(24, 8, 8, 12);
+  ctx.lineTo(-15, 12);
+  ctx.closePath();
+  
+  const grad = ctx.createLinearGradient(-15, 0, 24, 0);
+  grad.addColorStop(0, '#f43f5e');
+  grad.addColorStop(0.7, '#f43f5e');
+  grad.addColorStop(1, '#be123c');
+  ctx.fillStyle = grad;
+  ctx.fill();
+  ctx.strokeStyle = '#9f1239';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // Bottom booster ring
+  ctx.fillStyle = '#475569';
+  ctx.fillRect(-18, -8, 3, 16);
+
+  // Big side fins (sleek and thick)
+  // Top fin
+  ctx.beginPath();
+  ctx.moveTo(-5, -12);
+  ctx.lineTo(-20, -22);
+  ctx.lineTo(-15, -12);
+  ctx.closePath();
+  ctx.fillStyle = '#be123c';
+  ctx.fill();
+  ctx.stroke();
+  
+  // Bottom fin
+  ctx.beginPath();
+  ctx.moveTo(-5, 12);
+  ctx.lineTo(-20, 22);
+  ctx.lineTo(-15, 12);
+  ctx.closePath();
+  ctx.fillStyle = '#be123c';
+  ctx.fill();
+  ctx.stroke();
+
+  // Center cockpit window (larger glass bubble)
+  ctx.beginPath();
+  ctx.arc(4, 0, 5, 0, Math.PI * 2);
+  ctx.fillStyle = '#38bdf8';
+  ctx.fill();
+  ctx.strokeStyle = '#ffffff';
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  
+  // Window shine
+  ctx.beginPath();
+  ctx.arc(2.5, -1.5, 1.5, 0, Math.PI * 2);
+  ctx.fillStyle = '#ffffff';
+  ctx.fill();
+
+  ctx.restore();
+};

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { ArrowLeft, Play, ShieldAlert, ArrowUpDown, Coins, Flame, Trophy } from 'lucide-react';
 import Link from 'next/link';
+import { WinLoseOverlay } from '@/components/ui/WinLoseOverlay';
 
 interface CardData {
   value: number; // 1 = Ace, 2-10, 11 = Jack, 12 = Queen, 13 = King
@@ -45,7 +46,7 @@ const CARD_LABELS: Record<number, string> = {
 };
 
 export default function HiLoGame() {
-  const { credits, deductCredits, addCredits, addHistoryItem } = useGameState();
+  const { credits, deductCredits, addCredits, addHistoryItem, language } = useGameState();
   const { playClick, playWin, playLoss, playPlop } = useAudio();
 
   // Game Inputs
@@ -286,7 +287,7 @@ export default function HiLoGame() {
                     className="relative overflow-hidden bg-gradient-to-r from-amber-500 to-yellow-500 text-black border-none font-bold"
                   >
                     <span>
-                      Cash Out: ${(betAmount * accumulatedMultiplier).toFixed(0)} ({accumulatedMultiplier}x)
+                      Cash Out ${(betAmount * accumulatedMultiplier).toFixed(2)}
                     </span>
                   </Button>
                 </div>
@@ -404,34 +405,15 @@ export default function HiLoGame() {
               </div>
             )}
 
-            {/* Win/Loss screen overlay */}
-            {gameOverReason && (
-              <div className="absolute inset-0 bg-[#020202]/90 flex flex-col items-center justify-center gap-3 backdrop-blur-sm z-10 transition-all rounded-2xl">
-                <span className="text-neutral-500 text-[10px] uppercase font-bold tracking-widest">ROUND COMPLETE</span>
-                {gameOverReason === 'win' ? (
-                  <>
-                    <span className="text-4xl font-black text-emerald-500">
-                      CASHED OUT!
-                    </span>
-                    <span className="text-sm text-neutral-300 font-semibold">
-                      Won ${(betAmount * accumulatedMultiplier).toFixed(0)} at {accumulatedMultiplier}x multiplier
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <span className="text-4xl font-black text-rose-500">
-                      CARD CRASHED
-                    </span>
-                    <span className="text-sm text-neutral-300 font-semibold">
-                      Your guess was incorrect. Bet of ${betAmount} lost.
-                    </span>
-                  </>
-                )}
-                <Button size="sm" variant="dark" className="mt-2" onClick={() => setGameOverReason(null)}>
-                  Clear Board
-                </Button>
-              </div>
-            )}
+            {/* Center Outcome Overlay */}
+            <WinLoseOverlay
+              isOpen={!!gameOverReason}
+              onClose={() => setGameOverReason(null)}
+              outcome={gameOverReason === 'win' ? 'cashout' : gameOverReason === 'loss' ? 'loss' : null}
+              multiplier={accumulatedMultiplier}
+              payout={gameOverReason === 'win' ? betAmount * accumulatedMultiplier : 0}
+              language={language}
+            />
 
           </Card>
 

@@ -8,14 +8,17 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/Button';
 import { ArrowLeft, Play, ShieldAlert, Award, Layers, Crown, Gem, Bomb } from 'lucide-react';
 import Link from 'next/link';
+import { CustomEmoji } from '@/components/ui/CustomEmoji';
+import { WinLoseOverlay } from '@/components/ui/WinLoseOverlay';
 
-type Difficulty = 'easy' | 'medium' | 'hard';
+type Difficulty = 'easy' | 'medium' | 'hard' | 'extreme';
 
 // Payout matrices for Tiers 1-8
 const PAYOUTS: Record<Difficulty, number[]> = {
-  easy: [1.45, 2.15, 3.20, 4.75, 7.00, 10.40, 15.40, 22.80],
-  medium: [1.96, 3.88, 7.68, 15.20, 30.10, 59.60, 118.00, 233.00],
-  hard: [2.94, 8.73, 25.90, 77.00, 228.00, 678.00, 2015.00, 5985.00],
+  easy: [1.21, 1.47, 1.78, 2.15, 2.60, 3.15, 3.81, 4.61],
+  medium: [1.29, 1.67, 2.15, 2.78, 3.59, 4.64, 5.99, 7.73],
+  hard: [1.45, 2.11, 3.07, 4.47, 6.50, 9.45, 13.75, 20.00],
+  extreme: [1.94, 3.76, 7.30, 14.16, 27.47, 53.30, 103.40, 200.60],
 };
 
 interface RowState {
@@ -25,7 +28,7 @@ interface RowState {
 }
 
 export default function TowersGame() {
-  const { credits, deductCredits, addCredits, addHistoryItem, unlockAchievement } = useGameState();
+  const { credits, deductCredits, addCredits, addHistoryItem, unlockAchievement, language } = useGameState();
   const { playClick, playWin, playLoss, playPlop } = useAudio();
 
   // Inputs
@@ -37,7 +40,7 @@ export default function TowersGame() {
   const [currentTier, setCurrentTier] = useState<number>(0); // 0-7, bottom up
   const [tower, setTower] = useState<RowState[]>([]);
   const [gameOver, setGameOver] = useState<boolean>(false);
-  const [gameOutcome, setGameOutcome] = useState<'win' | 'loss' | null>(null);
+  const [gameOutcome, setGameOutcome] = useState<'win' | 'loss' | 'cashout' | null>(null);
 
   // Stats
   const [gameStats, setGameStats] = useState({ wins: 0, losses: 0, profit: 0 });
@@ -48,9 +51,10 @@ export default function TowersGame() {
 
   // Tile count based on difficulty
   const getTileCount = () => {
-    if (difficulty === 'easy') return 3;
-    if (difficulty === 'medium') return 2;
-    return 3;
+    if (difficulty === 'easy') return 5;
+    if (difficulty === 'medium') return 4;
+    if (difficulty === 'hard') return 3;
+    return 2; // extreme
   };
 
   // Start Towers Game
@@ -70,7 +74,7 @@ export default function TowersGame() {
     setCurrentTier(0);
 
     const tileCount = getTileCount();
-    const minesCount = difficulty === 'easy' ? 1 : difficulty === 'medium' ? 1 : 2;
+    const minesCount = 1; // All difficulties have exactly 1 mine
 
     // Build the 8-tier tower board structure
     const initialTower: RowState[] = Array.from({ length: 8 }, () => {
@@ -156,7 +160,7 @@ export default function TowersGame() {
     }));
 
     setGameOver(true);
-    setGameOutcome('win');
+    setGameOutcome('cashout');
     setIsPlaying(false);
   };
 
@@ -168,7 +172,7 @@ export default function TowersGame() {
         <Link 
           href="/" 
           onClick={playClick}
-          className="flex items-center gap-1.5 text-xs text-neutral-400 hover:text-white transition-colors uppercase font-bold tracking-widest"
+          className="flex items-center gap-1.5 text-xs text-neutral-400 hover:text-white transition-colors font-bold tracking-wide"
         >
           <ArrowLeft className="w-4 h-4" />
           Back to Lobby
@@ -230,13 +234,13 @@ export default function TowersGame() {
               {/* Difficulty selector */}
               <div className="flex flex-col gap-2">
                 <span className="text-xs font-bold text-neutral-400">Difficulty Risk</span>
-                <div className="grid grid-cols-3 gap-2 bg-black border border-luxury-border p-1 rounded-xl">
-                  {['easy', 'medium', 'hard'].map((lvl) => (
+                <div className="grid grid-cols-4 gap-1 bg-black border border-luxury-border p-1 rounded-xl">
+                  {['easy', 'medium', 'hard', 'extreme'].map((lvl) => (
                     <button
                       key={lvl}
                       onClick={() => { playClick(); setDifficulty(lvl as Difficulty); }}
                       disabled={isPlaying}
-                      className={`py-2 text-[10px] uppercase font-extrabold rounded-lg transition-all cursor-pointer ${
+                      className={`py-2 text-[9px] uppercase font-extrabold rounded-lg transition-all cursor-pointer ${
                         difficulty === lvl
                           ? 'gold-gradient-bg text-black shadow-md'
                           : 'text-neutral-400 hover:text-white bg-transparent'
@@ -265,7 +269,7 @@ export default function TowersGame() {
                     <span>Make Tier 1 Pick</span>
                   ) : (
                     <span>
-                      Cash Out @ ${(betAmount * activeMultiplier).toFixed(0)} ({activeMultiplier.toFixed(2)}x)
+                      Cash Out ${(betAmount * activeMultiplier).toFixed(2)}
                     </span>
                   )}
                 </Button>
@@ -326,7 +330,7 @@ export default function TowersGame() {
           <Card className="bg-[#050505] border-luxury-border p-6 w-full max-w-[420px] flex flex-col gap-2 relative overflow-hidden select-none">
             
             {/* Grid rows starting from top (Index 7) down to bottom (Index 0) */}
-            {isPlaying ? (
+            {tower.length > 0 ? (
               tower.map((row, rIdx) => {
                 const rowRealIdx = 7 - rIdx; // display bottom up
                 const actualRow = tower[rowRealIdx];
@@ -412,34 +416,15 @@ export default function TowersGame() {
               </div>
             )}
 
-            {/* Overlays */}
-            {gameOver && gameOutcome && (
-              <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex flex-col items-center justify-center p-4 text-center z-10 animate-fade-in">
-                <span className="text-[10px] tracking-widest font-extrabold text-gold-500 uppercase leading-none">Tower Cleared</span>
-                <h3 className={`text-2xl font-black mt-2 tracking-wide uppercase ${gameOutcome === 'win' ? 'text-emerald-500' : 'text-red-500'}`}>
-                  {gameOutcome === 'win' ? 'SUCCESSFUL CLIMB' : 'HIT A MINE!'}
-                </h3>
-                
-                <div className="bg-black/60 border border-luxury-border px-5 py-3 rounded-xl flex gap-6 mt-4 text-left">
-                  <div>
-                    <span className="text-[9px] text-neutral-500 font-bold block uppercase leading-none">Multiplier</span>
-                    <span className="text-base font-extrabold text-white block mt-1">
-                      {gameOutcome === 'win' ? `${activeMultiplier.toFixed(2)}x` : '0.00x'}
-                    </span>
-                  </div>
-                  <div>
-                    <span className="text-[9px] text-neutral-500 font-bold block uppercase leading-none">Payout</span>
-                    <span className="text-base font-extrabold text-white block mt-1">
-                      {gameOutcome === 'win' ? `$${(betAmount * activeMultiplier).toFixed(0)}` : '$0'}
-                    </span>
-                  </div>
-                </div>
-
-                <Button variant="gold" size="sm" className="mt-6" onClick={handleStartGame}>
-                  Play Again
-                </Button>
-              </div>
-            )}
+            {/* Center Outcome Overlay */}
+            <WinLoseOverlay
+              isOpen={gameOver}
+              onClose={() => { setGameOver(false); setGameOutcome(null); }}
+              outcome={gameOutcome}
+              multiplier={activeMultiplier}
+              payout={betAmount * activeMultiplier}
+              language={language}
+            />
           </Card>
 
           {/* Game Rules Description */}

@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { ArrowLeft, Play, ShieldAlert, Hash, RefreshCw, Trash2, Sparkles } from 'lucide-react';
 import Link from 'next/link';
+import { WinLoseOverlay } from '@/components/ui/WinLoseOverlay';
 
 // Payout paytable: record of selected numbers -> record of matches -> multiplier
 const PAYTABLE: Record<number, Record<number, number>> = {
@@ -24,7 +25,7 @@ const PAYTABLE: Record<number, Record<number, number>> = {
 };
 
 export default function KenoGame() {
-  const { credits, deductCredits, addCredits, addHistoryItem } = useGameState();
+  const { credits, deductCredits, addCredits, addHistoryItem, language } = useGameState();
   const { playClick, playWin, playLoss, playPlop } = useAudio();
 
   // Inputs
@@ -374,21 +375,15 @@ export default function KenoGame() {
               })}
             </div>
 
-            {/* Large center banner when result rolls */}
-            {gameResult && (
-              <div className="absolute inset-0 bg-[#020202]/90 flex flex-col items-center justify-center gap-3 backdrop-blur-sm z-10 transition-all rounded-2xl">
-                <span className="text-neutral-500 text-[10px] uppercase font-bold tracking-widest">Draw complete</span>
-                <span className={`text-4xl font-black ${gameResult.payout > 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                  {gameResult.payout > 0 ? `YOU WON $${gameResult.payout.toLocaleString()}` : 'ROUND LOST'}
-                </span>
-                <span className="text-xs text-neutral-400 font-semibold">
-                  {gameResult.matches} matches on {selectedCount} picks
-                </span>
-                <Button size="sm" variant="dark" className="mt-2" onClick={() => setGameResult(null)}>
-                  Keep Selections
-                </Button>
-              </div>
-            )}
+            {/* Center Outcome Overlay */}
+            <WinLoseOverlay
+              isOpen={!!gameResult}
+              onClose={() => setGameResult(null)}
+              outcome={gameResult ? (gameResult.payout > 0 ? 'win' : 'loss') : null}
+              multiplier={gameResult ? gameResult.multiplier : 0}
+              payout={gameResult ? gameResult.payout : 0}
+              language={language}
+            />
 
           </Card>
 

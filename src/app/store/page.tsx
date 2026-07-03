@@ -6,7 +6,7 @@ import { useAudio } from '@/hooks/useAudio';
 import { triggerJackpotConfetti } from '@/utils/confetti';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { Coins, Check, ShieldCheck, ShoppingCart, CheckCircle, Sparkles } from 'lucide-react';
+import { Coins, Check, ShieldCheck, ShoppingCart, CheckCircle, Sparkles, X, Copy } from 'lucide-react';
 
 interface Pack {
   id: string;
@@ -64,21 +64,45 @@ const PACKS: Pack[] = [
 
 export default function Store() {
   const { addCredits } = useGameState();
-  const { playWin } = useAudio();
+  const { playWin, playClick } = useAudio();
   const [purchasedPack, setPurchasedPack] = useState<{ name: string; credits: number; priceUSD: number } | null>(null);
   const [checkoutLoading, setCheckoutLoading] = useState<string | null>(null);
   const [customAmount, setCustomAmount] = useState<number>(500);
 
+  // Deposit Modal States
+  const [isDepositModalOpen, setIsDepositModalOpen] = useState(false);
+  const [selectedPack, setSelectedPack] = useState<{ id: string; name: string; credits: number; priceUSD: number } | null>(null);
+  const [depositMethod] = useState<'crypto'>('crypto');
+  const [cryptoType, setCryptoType] = useState<'BTC' | 'LTC' | 'ETH' | 'USDT' | 'DOGE'>('BTC');
+  const [copiedAddress, setCopiedAddress] = useState(false);
+  const [depositVerificationLoading, setDepositVerificationLoading] = useState(false);
+
   const handleBuy = (pack: { id: string; name: string; credits: number; priceUSD: number }) => {
-    setCheckoutLoading(pack.id);
-    // Simulate premium banking verification delay
+    setSelectedPack(pack);
+    setCryptoType('BTC');
+    setIsDepositModalOpen(true);
+  };
+
+  const executeDeposit = () => {
+    if (!selectedPack) return;
+
+    setDepositVerificationLoading(true);
+
     setTimeout(() => {
-      addCredits(pack.credits);
+      addCredits(selectedPack.credits);
       playWin();
       triggerJackpotConfetti();
-      setPurchasedPack({ name: pack.name, credits: pack.credits, priceUSD: pack.priceUSD });
-      setCheckoutLoading(null);
-    }, 1500);
+
+      setPurchasedPack({
+        name: `${selectedPack.name} (${cryptoType} Blockchain)`,
+        credits: selectedPack.credits,
+        priceUSD: selectedPack.priceUSD
+      });
+
+      setDepositVerificationLoading(false);
+      setIsDepositModalOpen(false);
+      setSelectedPack(null);
+    }, 2000);
   };
 
   return (
@@ -289,6 +313,136 @@ export default function Store() {
               </Button>
             </CardContent>
           </Card>
+        </div>
+      )}
+
+      {/* Deposit Method Modal */}
+      {isDepositModalOpen && selectedPack && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-md animate-fade-in p-4">
+          <div className="bg-[#0b0f19]/90 border border-luxury-border/60 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl relative select-none">
+            <div className="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-gold-500/30 to-transparent"></div>
+            
+            <div className="p-6 border-b border-luxury-border/60 flex justify-between items-center bg-[#070b14]">
+              <div>
+                <h3 className="text-sm font-extrabold text-white uppercase tracking-wider">Select Deposit Method</h3>
+                <p className="text-[10px] text-neutral-400 mt-1 font-bold">
+                  Acquiring: {selectedPack.name} (${selectedPack.credits.toLocaleString()} Credits)
+                </p>
+              </div>
+              <button 
+                onClick={() => { setIsDepositModalOpen(false); setSelectedPack(null); }} 
+                className="text-neutral-400 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 flex flex-col gap-5">
+              <div className="flex flex-col gap-4 animate-fade-in">
+                <div className="flex flex-col gap-2">
+                  <label className="text-xs font-bold text-neutral-500">Select Cryptocurrency</label>
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                    {[
+                      { type: 'BTC', label: 'BTC', color: 'amber' },
+                      { type: 'LTC', label: 'LTC', color: 'blue' },
+                      { type: 'ETH', label: 'ETH', color: 'indigo' },
+                      { type: 'USDT', label: 'USDT', color: 'emerald' },
+                      { type: 'DOGE', label: 'DOGE', color: 'yellow' }
+                    ].map((coin) => {
+                      const isActive = cryptoType === coin.type;
+                      let activeStyle = '';
+                      if (coin.type === 'BTC') activeStyle = 'bg-amber-500/10 border-amber-500/40 text-amber-500';
+                      else if (coin.type === 'LTC') activeStyle = 'bg-blue-500/10 border-blue-500/40 text-blue-400';
+                      else if (coin.type === 'ETH') activeStyle = 'bg-indigo-500/10 border-indigo-500/40 text-indigo-400';
+                      else if (coin.type === 'USDT') activeStyle = 'bg-emerald-500/10 border-emerald-500/40 text-emerald-400';
+                      else if (coin.type === 'DOGE') activeStyle = 'bg-yellow-500/10 border-yellow-500/40 text-yellow-500';
+
+                      return (
+                        <button
+                          key={coin.type}
+                          type="button"
+                          onClick={() => { playClick(); setCryptoType(coin.type as any); }}
+                          className={`py-2 rounded-xl text-[10px] font-black border transition-all duration-200 cursor-pointer ${
+                            isActive ? activeStyle : 'bg-black/20 border-luxury-border/60 text-neutral-500'
+                          }`}
+                        >
+                          {coin.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Wallet copy */}
+                <div className="flex flex-col items-center justify-center bg-black/45 border border-luxury-border/60 rounded-3xl p-4 gap-3.5">
+                  <div className="flex flex-col gap-1 w-full text-center">
+                    <span className="text-[9px] text-neutral-500 font-extrabold uppercase tracking-widest">
+                      {cryptoType} Deposit Wallet Address
+                    </span>
+                    <div className="flex items-center gap-1.5 bg-black border border-luxury-border/60 px-3.5 py-2.5 rounded-full mt-1">
+                      <span className="text-[10px] text-neutral-300 font-mono select-all truncate flex-grow">
+                        {cryptoType === 'BTC'
+                          ? '1RainMoneyBTCAddressCheck11111'
+                          : cryptoType === 'LTC'
+                          ? 'LRainMoneyLTCAddressCheck22222'
+                          : cryptoType === 'ETH'
+                          ? '0xRainMoneyETHAddressCheck33333'
+                          : cryptoType === 'USDT'
+                          ? '0xRainMoneyUSDTAddressCheck44444'
+                          : 'DRainMoneyDOGEAddressCheck55555'}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const addr = cryptoType === 'BTC'
+                            ? '1RainMoneyBTCAddressCheck11111'
+                            : cryptoType === 'LTC'
+                            ? 'LRainMoneyLTCAddressCheck22222'
+                            : cryptoType === 'ETH'
+                            ? '0xRainMoneyETHAddressCheck33333'
+                            : cryptoType === 'USDT'
+                            ? '0xRainMoneyUSDTAddressCheck44444'
+                            : 'DRainMoneyDOGEAddressCheck55555';
+                          navigator.clipboard.writeText(addr);
+                          setCopiedAddress(true);
+                          setTimeout(() => setCopiedAddress(false), 2000);
+                        }}
+                        className="text-neutral-500 hover:text-white transition-colors cursor-pointer shrink-0"
+                        title="Copy Wallet Address"
+                      >
+                        {copiedAddress ? (
+                          <span className="text-[8px] bg-emerald-500 text-black px-1.5 py-0.5 rounded-md font-bold uppercase leading-none">
+                            Copied!
+                          </span>
+                        ) : (
+                          <Copy className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Action Button */}
+              <Button
+                variant="gold"
+                fullWidth
+                size="lg"
+                disabled={depositVerificationLoading}
+                onClick={executeDeposit}
+                className="font-bold uppercase tracking-wider text-xs"
+              >
+                {depositVerificationLoading ? (
+                  <span className="flex items-center gap-2 justify-center">
+                    <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin"></span>
+                    Simulating Gateway...
+                  </span>
+                ) : (
+                  <span>Verify Blockchain Tx</span>
+                )}
+              </Button>
+            </div>
+          </div>
         </div>
       )}
     </div>
