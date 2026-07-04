@@ -97,9 +97,29 @@ export async function GET() {
       const home_team_id = teamNameMap.get(normTeam1) || '0';
       const away_team_id = teamNameMap.get(normTeam2) || '0';
 
-      const isFinished = liveMatch.score && Array.isArray(liveMatch.score.ft);
-      const homeScore = isFinished ? String(liveMatch.score.ft[0]) : '0';
-      const awayScore = isFinished ? String(liveMatch.score.ft[1]) : '0';
+      const isFinished = liveMatch.score && (Array.isArray(liveMatch.score.ft) || Array.isArray(liveMatch.score.et));
+      let homeScore = '0';
+      let awayScore = '0';
+
+      if (isFinished) {
+        if (Array.isArray(liveMatch.score.et)) {
+          homeScore = String(liveMatch.score.et[0]);
+          awayScore = String(liveMatch.score.et[1]);
+        } else if (Array.isArray(liveMatch.score.ft)) {
+          homeScore = String(liveMatch.score.ft[0]);
+          awayScore = String(liveMatch.score.ft[1]);
+        }
+      }
+
+      // Safeguard: Ensure the score is at least the number of goal scorers listed
+      const goals1Count = Array.isArray(liveMatch.goals1) ? liveMatch.goals1.length : 0;
+      const goals2Count = Array.isArray(liveMatch.goals2) ? liveMatch.goals2.length : 0;
+      if (goals1Count > Number(homeScore)) {
+        homeScore = String(goals1Count);
+      }
+      if (goals2Count > Number(awayScore)) {
+        awayScore = String(goals2Count);
+      }
 
       const finished = isFinished ? 'TRUE' : 'FALSE';
       const timeElapsed = isFinished ? 'finished' : 'notstarted';

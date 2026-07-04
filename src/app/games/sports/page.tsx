@@ -1993,10 +1993,10 @@ export default function SportsBettingGame() {
         throw new Error(errorMsg);
       }
 
-      const homeScore = Number(finalGame.home_score || 0);
-      const awayScore = Number(finalGame.away_score || 0);
       const homeScorersList = parseScorers(finalGame.home_scorers);
       const awayScorersList = parseScorers(finalGame.away_scorers);
+      const homeScore = Math.max(homeScorersList.length, Number(finalGame.home_score || 0));
+      const awayScore = Math.max(awayScorersList.length, Number(finalGame.away_score || 0));
 
       // Finalize outcome
       let finalOutcome: 'home' | 'draw' | 'away' = 'draw';
