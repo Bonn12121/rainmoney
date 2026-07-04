@@ -31,6 +31,9 @@ interface RawMatch {
   away_team_id: string;
   home_score: string;
   away_score: string;
+  home_penalty_score?: string;
+  away_penalty_score?: string;
+  extra_time?: boolean;
   home_scorers?: string;
   away_scorers?: string;
   group: string;
@@ -1737,16 +1740,116 @@ export default function SportsBettingGame() {
     setIsMounted(true);
     setClientTime(now);
 
+    let currentResolved: ResolvedBet[] = [];
     try {
       const storedActive = localStorage.getItem('rm_sports_active_bets');
       const storedResolved = localStorage.getItem('rm_sports_resolved_bets');
       const storedStats = localStorage.getItem('rm_sports_stats');
       if (storedActive) setActiveBets(JSON.parse(storedActive));
-      if (storedResolved) setResolvedBets(JSON.parse(storedResolved));
+      if (storedResolved) {
+        currentResolved = JSON.parse(storedResolved);
+        setResolvedBets(currentResolved);
+      }
       if (storedStats) setStats(JSON.parse(storedStats));
     } catch (e) {
       console.error('Failed to load local storage state:', e);
     }
+
+    const correctResolvedBets = (freshMatches: RawMatch[], resolvedList: ResolvedBet[]) => {
+      if (!resolvedList || resolvedList.length === 0) return;
+      let corrected = false;
+      let creditsDelta = 0;
+      let winsDelta = 0;
+      let lossesDelta = 0;
+
+      const updatedResolvedBets = resolvedList.map(bet => {
+        if (bet.match.id.startsWith('sim-') || bet.match.id.startsWith('espn-')) {
+          return bet;
+        }
+
+        const liveGame = freshMatches.find(g => g.id.toString() === bet.match.id.toString());
+        if (!liveGame || liveGame.finished !== 'TRUE') return bet;
+
+        const homeScorersList = parseScorers(liveGame.home_scorers);
+        const awayScorersList = parseScorers(liveGame.away_scorers);
+        const homeScore = Math.max(homeScorersList.length, Number(liveGame.home_score || 0));
+        const awayScore = Math.max(awayScorersList.length, Number(liveGame.away_score || 0));
+
+        let finalOutcome: 'home' | 'draw' | 'away' = 'draw';
+        if (homeScore > awayScore) {
+          finalOutcome = 'home';
+        } else if (awayScore > homeScore) {
+          finalOutcome = 'away';
+        } else {
+          const pHome = liveGame.home_penalty_score !== undefined && liveGame.home_penalty_score !== null ? Number(liveGame.home_penalty_score) : NaN;
+          const pAway = liveGame.away_penalty_score !== undefined && liveGame.away_penalty_score !== null ? Number(liveGame.away_penalty_score) : NaN;
+          if (!isNaN(pHome) && !isNaN(pAway)) {
+            if (pHome > pAway) {
+              finalOutcome = 'home';
+            } else if (pAway > pHome) {
+              finalOutcome = 'away';
+            }
+          }
+        }
+
+        const isWin = bet.prediction === finalOutcome;
+        const expectedOutcome: 'win' | 'loss' = isWin ? 'win' : 'loss';
+        const expectedPayout = isWin ? bet.amount * bet.odds : 0;
+
+        const needsUpdate = bet.outcome !== expectedOutcome || 
+                            bet.homeScore !== homeScore || 
+                            bet.awayScore !== awayScore ||
+                            bet.match.home_penalty_score !== liveGame.home_penalty_score ||
+                            bet.match.away_penalty_score !== liveGame.away_penalty_score;
+
+        if (needsUpdate) {
+          corrected = true;
+
+          if (bet.outcome === 'loss' && expectedOutcome === 'win') {
+            creditsDelta += expectedPayout;
+            winsDelta += 1;
+            lossesDelta -= 1;
+          } else if (bet.outcome === 'win' && expectedOutcome === 'loss') {
+            creditsDelta -= bet.payout;
+            winsDelta -= 1;
+            lossesDelta += 1;
+          }
+
+          return {
+            ...bet,
+            match: {
+              ...bet.match,
+              home_score: liveGame.home_score,
+              away_score: liveGame.away_score,
+              home_penalty_score: liveGame.home_penalty_score,
+              away_penalty_score: liveGame.away_penalty_score,
+              extra_time: liveGame.extra_time
+            },
+            homeScore,
+            awayScore,
+            outcome: expectedOutcome,
+            payout: expectedPayout
+          };
+        }
+
+        return bet;
+      });
+
+      if (corrected) {
+        setResolvedBets(updatedResolvedBets);
+        if (creditsDelta > 0) {
+          addCredits(creditsDelta);
+        } else if (creditsDelta < 0) {
+          deductCredits(Math.abs(creditsDelta));
+        }
+        setStats(curr => ({
+          totalBets: curr.totalBets,
+          wins: Math.max(0, curr.wins + winsDelta),
+          losses: Math.max(0, curr.losses + lossesDelta),
+          profit: curr.profit + creditsDelta
+        }));
+      }
+    };
 
     const fetchLiveFeeds = async () => {
       try {
@@ -1770,6 +1873,7 @@ export default function SportsBettingGame() {
               return parseMatchDate(a.local_date, a.stadium_id).getTime() - parseMatchDate(b.local_date, b.stadium_id).getTime();
             });
             setMatchesList(sortedGames);
+            correctResolvedBets(sortedGames, currentResolved);
           }
         }
       } catch (err) {
@@ -2000,8 +2104,22 @@ export default function SportsBettingGame() {
 
       // Finalize outcome
       let finalOutcome: 'home' | 'draw' | 'away' = 'draw';
-      if (homeScore > awayScore) finalOutcome = 'home';
-      else if (awayScore > homeScore) finalOutcome = 'away';
+      if (homeScore > awayScore) {
+        finalOutcome = 'home';
+      } else if (awayScore > homeScore) {
+        finalOutcome = 'away';
+      } else {
+        // If it's a draw, check if there's a penalty shootout
+        const pHome = finalGame.home_penalty_score !== undefined && finalGame.home_penalty_score !== null ? Number(finalGame.home_penalty_score) : NaN;
+        const pAway = finalGame.away_penalty_score !== undefined && finalGame.away_penalty_score !== null ? Number(finalGame.away_penalty_score) : NaN;
+        if (!isNaN(pHome) && !isNaN(pAway)) {
+          if (pHome > pAway) {
+            finalOutcome = 'home';
+          } else if (pAway > pHome) {
+            finalOutcome = 'away';
+          }
+        }
+      }
 
       const isWin = bet.prediction === finalOutcome;
       const payout = isWin ? bet.amount * bet.odds : 0;
@@ -2716,7 +2834,15 @@ export default function SportsBettingGame() {
                   <div className="flex flex-col gap-1 font-sans">
                     <div className="flex items-center gap-2">
                       <span className="text-neutral-450">{homeLabel}</span>
-                      <span className="text-white font-black text-sm font-mono">{bet.homeScore} - {bet.awayScore}</span>
+                      <span className="text-white font-black text-sm font-mono flex items-center gap-1.5">
+                        {bet.homeScore} - {bet.awayScore}
+                        {bet.match.home_penalty_score !== undefined && bet.match.home_penalty_score !== null &&
+                         bet.match.away_penalty_score !== undefined && bet.match.away_penalty_score !== null && (
+                          <span className="text-[10px] text-neutral-400 font-bold bg-neutral-900/60 px-1.5 py-0.5 rounded border border-neutral-800">
+                            ({bet.match.home_penalty_score} - {bet.match.away_penalty_score} Pen)
+                          </span>
+                        )}
+                      </span>
                       <span className="text-neutral-450">{awayLabel}</span>
                     </div>
                     <span className="text-[10px] text-neutral-500">
@@ -2830,7 +2956,19 @@ export default function SportsBettingGame() {
                         <span className="text-neutral-700 font-extrabold text-lg">:</span>
                         <span className="text-3xl font-black text-white tracking-tighter drop-shadow-[0_0_10px_rgba(255,255,255,0.4)]">{settleOutcome.awayScore}</span>
                       </div>
-                      <span className="text-[8px] text-neutral-500 font-bold uppercase tracking-widest">FT</span>
+                      {settleOutcome.match.home_penalty_score !== undefined && settleOutcome.match.home_penalty_score !== null &&
+                       settleOutcome.match.away_penalty_score !== undefined && settleOutcome.match.away_penalty_score !== null ? (
+                        <div className="flex flex-col items-center gap-0.5">
+                          <span className="text-[10px] text-neutral-400 font-bold font-mono">
+                            ({settleOutcome.match.home_penalty_score} - {settleOutcome.match.away_penalty_score} Pen)
+                          </span>
+                          <span className="text-[8px] text-neutral-500 font-bold uppercase tracking-widest">PEN</span>
+                        </div>
+                      ) : settleOutcome.match.extra_time ? (
+                        <span className="text-[8px] text-neutral-500 font-bold uppercase tracking-widest">AET</span>
+                      ) : (
+                        <span className="text-[8px] text-neutral-500 font-bold uppercase tracking-widest">FT</span>
+                      )}
                     </div>
 
                     {/* Away Team */}

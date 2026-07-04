@@ -97,17 +97,63 @@ export async function GET() {
       const home_team_id = teamNameMap.get(normTeam1) || '0';
       const away_team_id = teamNameMap.get(normTeam2) || '0';
 
-      const isFinished = liveMatch.score && (Array.isArray(liveMatch.score.ft) || Array.isArray(liveMatch.score.et));
+      const isKnockout = template.type === 'knockout' || (!liveMatch.group);
+      
+      let isFinished = false;
       let homeScore = '0';
       let awayScore = '0';
+      let homePenaltyScore: string | undefined = undefined;
+      let awayPenaltyScore: string | undefined = undefined;
+      let extraTime = false;
 
-      if (isFinished) {
-        if (Array.isArray(liveMatch.score.et)) {
-          homeScore = String(liveMatch.score.et[0]);
-          awayScore = String(liveMatch.score.et[1]);
-        } else if (Array.isArray(liveMatch.score.ft)) {
-          homeScore = String(liveMatch.score.ft[0]);
-          awayScore = String(liveMatch.score.ft[1]);
+      if (liveMatch.score) {
+        if (isKnockout) {
+          if (Array.isArray(liveMatch.score.ft)) {
+            const ftHome = Number(liveMatch.score.ft[0]);
+            const ftAway = Number(liveMatch.score.ft[1]);
+            const isFtDraw = ftHome === ftAway;
+
+            if (!isFtDraw) {
+              isFinished = true;
+              homeScore = String(ftHome);
+              awayScore = String(ftAway);
+            } else {
+              if (Array.isArray(liveMatch.score.et)) {
+                const etHome = Number(liveMatch.score.et[0]);
+                const etAway = Number(liveMatch.score.et[1]);
+                const isEtDraw = etHome === etAway;
+                extraTime = true;
+
+                if (!isEtDraw) {
+                  isFinished = true;
+                  homeScore = String(etHome);
+                  awayScore = String(etAway);
+                } else {
+                  if (Array.isArray(liveMatch.score.p)) {
+                    isFinished = true;
+                    homeScore = String(etHome);
+                    awayScore = String(etAway);
+                    homePenaltyScore = String(liveMatch.score.p[0]);
+                    awayPenaltyScore = String(liveMatch.score.p[1]);
+                  } else {
+                    isFinished = false;
+                    homeScore = String(etHome);
+                    awayScore = String(etAway);
+                  }
+                }
+              } else {
+                isFinished = false;
+                homeScore = String(ftHome);
+                awayScore = String(ftAway);
+              }
+            }
+          }
+        } else {
+          if (Array.isArray(liveMatch.score.ft)) {
+            isFinished = true;
+            homeScore = String(liveMatch.score.ft[0]);
+            awayScore = String(liveMatch.score.ft[1]);
+          }
         }
       }
 
@@ -134,6 +180,9 @@ export async function GET() {
         away_team_id,
         home_score: homeScore,
         away_score: awayScore,
+        home_penalty_score: homePenaltyScore,
+        away_penalty_score: awayPenaltyScore,
+        extra_time: extraTime,
         home_scorers: homeScorers,
         away_scorers: awayScorers,
         finished,
