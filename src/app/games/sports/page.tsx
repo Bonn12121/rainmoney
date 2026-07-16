@@ -72,10 +72,11 @@ interface ResolvedBet {
   odds: number;
   homeScore: number;
   awayScore: number;
-  outcome: 'win' | 'loss';
+  outcome: 'win' | 'loss' | 'refund';
   timestamp: number;
   homeScorers?: string[];
   awayScorers?: string[];
+  triggeredEvents?: string[];
 }
 
 // Fallback Flags for TBD/winners
@@ -328,6 +329,212 @@ const parseMatchDate = (dateStr: string, stadiumId?: string): Date => {
   }
 };
 
+interface SportsEvent {
+  id: string;
+  titleEn: string;
+  titleVi: string;
+  descEn: string;
+  descVi: string;
+  badgeEn: string;
+  badgeVi: string;
+  icon: string;
+  color: string;
+  check: (bet: Bet, finalGame: RawMatch, isWin: boolean, homeScore: number, awayScore: number) => boolean;
+  multiplier: number;
+}
+
+const overrideWorldCupMatches = (matches: RawMatch[]): RawMatch[] => {
+  return matches.map(match => {
+    if (match.id === '103') {
+      return {
+        ...match,
+        home_team_id: '33', // France
+        away_team_id: '45', // England
+        home_team_name_en: 'France',
+        away_team_name_en: 'England',
+        home_team_label: 'FRA',
+        away_team_label: 'ENG'
+      };
+    }
+    if (match.id === '104') {
+      return {
+        ...match,
+        home_team_id: '29', // Spain
+        away_team_id: '37', // Argentina
+        home_team_name_en: 'Spain',
+        away_team_name_en: 'Argentina',
+        home_team_label: 'ESP',
+        away_team_label: 'ARG'
+      };
+    }
+    return match;
+  });
+};
+
+const SPORTS_EVENTS: SportsEvent[] = [
+  {
+    id: 'underdog_triumph',
+    titleEn: 'Underdog Triumph',
+    titleVi: 'Thắng Cửa Dưới',
+    descEn: 'Double your payout if you win a bet with odds of 3.0x or higher.',
+    descVi: 'Nhân đôi tiền thưởng nếu thắng cược với tỷ lệ cược từ 3.0x trở lên.',
+    badgeEn: '2x Payout',
+    badgeVi: 'Thưởng 2.0x',
+    icon: '🔥',
+    color: 'from-amber-600 to-orange-500 border-orange-500/30 text-orange-400',
+    check: (bet: Bet, finalGame: RawMatch, isWin: boolean, homeScore: number, awayScore: number) => {
+      return isWin && bet.odds >= 3.0;
+    },
+    multiplier: 2.0
+  },
+  {
+    id: 'clean_sheet',
+    titleEn: 'Clean Sheet Master',
+    titleVi: 'Bậc Thầy Giữ Sạch Lưới',
+    descEn: 'Get a 1.25x payout booster if your winning team keeps a clean sheet (concedes 0 goals).',
+    descVi: 'Tăng 1.25x tiền thưởng nếu đội bạn cược thắng và giữ sạch lưới (đối thủ ghi 0 bàn).',
+    badgeEn: '1.25x Payout',
+    badgeVi: 'Thưởng 1.25x',
+    icon: '🛡️',
+    color: 'from-blue-600 to-cyan-500 border-cyan-500/30 text-cyan-400',
+    check: (bet: Bet, finalGame: RawMatch, isWin: boolean, homeScore: number, awayScore: number) => {
+      if (!isWin) return false;
+      if (bet.prediction === 'home') return awayScore === 0;
+      if (bet.prediction === 'away') return homeScore === 0;
+      return false;
+    },
+    multiplier: 1.25
+  },
+  {
+    id: 'penalty_shootout',
+    titleEn: 'Shootout Drama',
+    titleVi: 'Đấu Súng Cân Não',
+    descEn: 'Get 1.5x payout if the match is decided in a penalty shootout.',
+    descVi: 'Tăng 1.5x tiền thưởng nếu trận đấu phải quyết định bằng loạt sút luân lưu.',
+    badgeEn: '1.5x Payout',
+    badgeVi: 'Thưởng 1.5x',
+    icon: '⚽',
+    color: 'from-red-600 to-rose-500 border-rose-500/30 text-rose-400',
+    check: (bet: Bet, finalGame: RawMatch, isWin: boolean, homeScore: number, awayScore: number) => {
+      const pHome = finalGame.home_penalty_score !== undefined && finalGame.home_penalty_score !== null ? Number(finalGame.home_penalty_score) : NaN;
+      const pAway = finalGame.away_penalty_score !== undefined && finalGame.away_penalty_score !== null ? Number(finalGame.away_penalty_score) : NaN;
+      return isWin && !isNaN(pHome) && !isNaN(pAway);
+    },
+    multiplier: 1.5
+  },
+  {
+    id: 'final_fest',
+    titleEn: 'Final Goal Fest',
+    titleVi: 'Chung Kết Rực Lửa',
+    descEn: 'Double your payout if you bet on the Final match (Match 104) and total goals in regular time are 3 or more.',
+    descVi: 'Nhân đôi tiền thưởng nếu đặt cược trận Chung kết (Trận 104) và tổng số bàn thắng từ 3 trở lên.',
+    badgeEn: '2.0x Payout',
+    badgeVi: 'Thưởng 2.0x',
+    icon: '🏆',
+    color: 'from-yellow-500 to-amber-500 border-yellow-500/30 text-yellow-400',
+    check: (bet: Bet, finalGame: RawMatch, isWin: boolean, homeScore: number, awayScore: number) => {
+      return isWin && finalGame.id === '104' && (homeScore + awayScore >= 3);
+    },
+    multiplier: 2.0
+  },
+  {
+    id: 'euro_latino',
+    titleEn: 'Euro-Latino Clash',
+    titleVi: 'Đại Chiến Âu - Mỹ',
+    descEn: 'Get a 1.5x payout boost for Spain vs Argentina (Final) if both teams score in regular time.',
+    descVi: 'Tăng 1.5x tiền thưởng cho trận Tây Ban Nha vs Argentina (Chung kết) nếu cả hai đội đều ghi bàn.',
+    badgeEn: '1.5x Payout',
+    badgeVi: 'Thưởng 1.5x',
+    icon: '🌎',
+    color: 'from-violet-600 to-indigo-500 border-indigo-500/30 text-indigo-400',
+    check: (bet: Bet, finalGame: RawMatch, isWin: boolean, homeScore: number, awayScore: number) => {
+      return isWin && finalGame.id === '104' && homeScore > 0 && awayScore > 0;
+    },
+    multiplier: 1.5
+  },
+  {
+    id: 'draw_insurance',
+    titleEn: 'Draw Insurance',
+    titleVi: 'Bảo Hiểm Hòa',
+    descEn: 'Refund 50% of your stake if you bet on a team to win but the match ends in a Draw (90 mins).',
+    descVi: 'Hoàn lại 50% tiền cược nếu bạn đặt cược một đội thắng nhưng trận đấu kết thúc với kết quả Hòa.',
+    badgeEn: '50% Refund',
+    badgeVi: 'Hoàn 50%',
+    icon: '🛡️',
+    color: 'from-teal-600 to-emerald-500 border-emerald-500/30 text-emerald-400',
+    check: (bet: Bet, finalGame: RawMatch, isWin: boolean, homeScore: number, awayScore: number) => {
+      return !isWin && bet.prediction !== 'draw' && homeScore === awayScore;
+    },
+    multiplier: 0.5
+  },
+  {
+    id: 'goal_fest',
+    titleEn: 'Goal Fest',
+    titleVi: 'Đại Tiệc Bàn Thắng',
+    descEn: 'Get 1.3x payout if the total score of the match is 4 or more goals.',
+    descVi: 'Tăng 1.3x tiền thưởng nếu tổng số bàn thắng của trận đấu từ 4 bàn trở lên.',
+    badgeEn: '1.3x Payout',
+    badgeVi: 'Thưởng 1.3x',
+    icon: '⚡',
+    color: 'from-fuchsia-600 to-pink-500 border-pink-500/30 text-pink-400',
+    check: (bet: Bet, finalGame: RawMatch, isWin: boolean, homeScore: number, awayScore: number) => {
+      return isWin && (homeScore + awayScore >= 4);
+    },
+    multiplier: 1.3
+  },
+  {
+    id: 'weekend_booster',
+    titleEn: 'Weekend Booster',
+    titleVi: 'Cuối Tuần Bùng Nổ',
+    descEn: 'Get 1.15x payout if the bet was placed on Saturday or Sunday.',
+    descVi: 'Tăng 1.15x tiền thưởng nếu cược được đặt vào thứ Bảy hoặc Chủ Nhật.',
+    badgeEn: '1.15x Payout',
+    badgeVi: 'Thưởng 1.15x',
+    icon: '🎉',
+    color: 'from-purple-600 to-fuchsia-500 border-fuchsia-500/30 text-fuchsia-400',
+    check: (bet: Bet, finalGame: RawMatch, isWin: boolean, homeScore: number, awayScore: number) => {
+      if (!isWin) return false;
+      const betDate = new Date(bet.timestamp);
+      const day = betDate.getDay();
+      return day === 0 || day === 6;
+    },
+    multiplier: 1.15
+  },
+  {
+    id: 'perfect_margin',
+    titleEn: 'Perfect Prediction',
+    titleVi: 'Dự Đoán Hoàn Hảo',
+    descEn: 'Get 1.25x payout if your team wins by a margin of 2 or more goals.',
+    descVi: 'Tăng 1.25x tiền thưởng nếu đội bạn cược thắng cách biệt từ 2 bàn trở lên.',
+    badgeEn: '1.25x Payout',
+    badgeVi: 'Thưởng 1.25x',
+    icon: '🎯',
+    color: 'from-lime-600 to-green-500 border-green-500/30 text-green-400',
+    check: (bet: Bet, finalGame: RawMatch, isWin: boolean, homeScore: number, awayScore: number) => {
+      if (!isWin) return false;
+      if (bet.prediction === 'home') return (homeScore - awayScore) >= 2;
+      if (bet.prediction === 'away') return (awayScore - homeScore) >= 2;
+      return false;
+    },
+    multiplier: 1.25
+  },
+  {
+    id: 'high_stakes_elite',
+    titleEn: 'High Stakes Elite',
+    titleVi: 'Đại Gia Thể Thao',
+    descEn: 'Get 1.1x payout boost if your bet amount is $1,000 or more.',
+    descVi: 'Tăng 1.1x tiền thưởng nếu số tiền đặt cược từ $1,000 trở lên.',
+    badgeEn: '1.1x Payout',
+    badgeVi: 'Thưởng 1.1x',
+    icon: '💎',
+    color: 'from-sky-600 to-blue-500 border-sky-500/30 text-sky-400',
+    check: (bet: Bet, finalGame: RawMatch, isWin: boolean, homeScore: number, awayScore: number) => {
+      return isWin && bet.amount >= 1000;
+    },
+    multiplier: 1.1
+  }
+];
+
 // Helper to parse scorers string format like {"Nestory Irankunda 27'","C. Metcalfe 75'"}
 const parseScorers = (scorersStr?: string): string[] => {
   if (!scorersStr || scorersStr === 'null' || scorersStr === 'undefined') return [];
@@ -473,6 +680,16 @@ interface GroupedMatches {
   title: string;
   matches: RawMatch[];
 }
+
+const formatGroupLabel = (group: string, lang: 'en' | 'vi'): string => {
+  if (group === 'FINAL') return lang === 'vi' ? 'Chung Kết' : 'Final';
+  if (group === '3RD') return lang === 'vi' ? 'Tranh Hạng Ba' : '3rd Place';
+  if (group === 'SF') return lang === 'vi' ? 'Bán kết' : 'Semi Final';
+  if (group === 'QF') return lang === 'vi' ? 'Tứ kết' : 'Quarter Final';
+  if (group === 'R16') return lang === 'vi' ? 'Vòng 16' : 'Round of 16';
+  if (group === 'R32') return lang === 'vi' ? 'Vòng 32' : 'Round of 32';
+  return lang === 'vi' ? `Bảng ${group}` : `Group ${group}`;
+};
 
 const groupMatches = (matchesToGroup: RawMatch[], clientTime: Date, lang: 'en' | 'vi'): GroupedMatches[] => {
   const isVi = lang === 'vi';
@@ -1122,6 +1339,7 @@ export default function SportsBettingGame() {
   const [isMounted, setIsMounted] = useState(false);
   // Use lazy initializer that only runs on client — avoids SSR/hydration mismatch
   const [clientTime, setClientTime] = useState<Date | null>(null);
+  const [userTimezone, setUserTimezone] = useState<string>('');
   // Ref to the first upcoming match for auto-scrolling
   const firstUpcomingRef = useRef<HTMLDivElement>(null);
   // Bet placed notification
@@ -1138,7 +1356,7 @@ export default function SportsBettingGame() {
   });
 
   const [teamsList, setTeamsList] = useState<Team[]>(localTeams);
-  const [matchesList, setMatchesList] = useState<RawMatch[]>(localMatchesSorted);
+  const [matchesList, setMatchesList] = useState<RawMatch[]>(overrideWorldCupMatches(localMatchesSorted));
   const [isLoadingAPI, setIsLoadingAPI] = useState<boolean>(true);
 
   // Filter Active View Tab
@@ -1740,6 +1958,16 @@ export default function SportsBettingGame() {
     setIsMounted(true);
     setClientTime(now);
 
+    try {
+      const tzName = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const offsetMins = new Date().getTimezoneOffset();
+      const offsetHours = -offsetMins / 60;
+      const offsetStr = (offsetHours >= 0 ? '+' : '') + offsetHours;
+      setUserTimezone(`GMT${offsetStr} (${tzName})`);
+    } catch (e) {
+      setUserTimezone('GMT+7 (Asia/Jakarta)');
+    }
+
     let currentResolved: ResolvedBet[] = [];
     try {
       const storedActive = localStorage.getItem('rm_sports_active_bets');
@@ -1872,8 +2100,9 @@ export default function SportsBettingGame() {
             const sortedGames = [...gData.games].sort((a, b) => {
               return parseMatchDate(a.local_date, a.stadium_id).getTime() - parseMatchDate(b.local_date, b.stadium_id).getTime();
             });
-            setMatchesList(sortedGames);
-            correctResolvedBets(sortedGames, currentResolved);
+            const overriddenGames = overrideWorldCupMatches(sortedGames);
+            setMatchesList(overriddenGames);
+            correctResolvedBets(overriddenGames, currentResolved);
           }
         }
       } catch (err) {
@@ -2122,8 +2351,32 @@ export default function SportsBettingGame() {
       }
 
       const isWin = bet.prediction === finalOutcome;
-      const payout = isWin ? bet.amount * bet.odds : 0;
-      const outcomeStatus = isWin ? 'win' : 'loss';
+      let payout = isWin ? bet.amount * bet.odds : 0;
+      let outcomeStatus: 'win' | 'loss' | 'refund' = isWin ? 'win' : 'loss';
+
+      // Check triggered events
+      const triggered = SPORTS_EVENTS.filter(evt => evt.check(bet, finalGame, isWin, homeScore, awayScore));
+      const triggeredIds = triggered.map(evt => evt.id);
+
+      let boostMultiplier = 1.0;
+      let refundApplied = false;
+      let refundAmount = 0;
+
+      triggered.forEach(evt => {
+        if (evt.id === 'draw_insurance') {
+          refundApplied = true;
+          refundAmount = bet.amount * 0.5;
+        } else {
+          boostMultiplier *= evt.multiplier;
+        }
+      });
+
+      if (isWin) {
+        payout = Math.round(payout * boostMultiplier * 100) / 100;
+      } else if (refundApplied) {
+        payout = Math.round(refundAmount * 100) / 100;
+        outcomeStatus = 'refund';
+      }
 
       const historyGameLabel = lang === 'vi' ? 'Cá cược Thể thao' : 'Sports Betting';
 
@@ -2131,12 +2384,22 @@ export default function SportsBettingGame() {
         addCredits(payout);
         playWin();
         triggerWinConfetti();
-        addHistoryItem(historyGameLabel, bet.amount, bet.odds, payout, 'win');
+        addHistoryItem(historyGameLabel, bet.amount, Math.round(bet.odds * boostMultiplier * 100) / 100, payout, 'win');
         setStats(curr => ({
           totalBets: curr.totalBets + 1,
           wins: curr.wins + 1,
           losses: curr.losses,
           profit: curr.profit + (payout - bet.amount)
+        }));
+      } else if (refundApplied) {
+        addCredits(payout);
+        playWin();
+        addHistoryItem(historyGameLabel, bet.amount, 0.5, payout, 'refund' as any);
+        setStats(curr => ({
+          totalBets: curr.totalBets + 1,
+          wins: curr.wins,
+          losses: curr.losses,
+          profit: curr.profit - (bet.amount - payout)
         }));
       } else {
         playLoss();
@@ -2157,13 +2420,14 @@ export default function SportsBettingGame() {
         prediction: bet.prediction,
         amount: bet.amount,
         payout,
-        odds: bet.odds,
+        odds: isWin ? Math.round(bet.odds * boostMultiplier * 100) / 100 : bet.odds,
         homeScore,
         awayScore,
         outcome: outcomeStatus,
         timestamp: Date.now(),
         homeScorers: homeScorersList,
-        awayScorers: awayScorersList
+        awayScorers: awayScorersList,
+        triggeredEvents: triggeredIds
       };
 
       setSettleOutcome(resolved);
@@ -2280,7 +2544,10 @@ export default function SportsBettingGame() {
           <div className="mt-5 pt-4 border-t border-luxury-border/30 flex flex-wrap items-center justify-between gap-3 text-[10px] text-neutral-400 font-bold uppercase tracking-wider">
             <div className="flex items-center gap-1.5 bg-black/25 px-3 py-1.5 rounded-full border border-luxury-border/25 font-mono font-bold">
               <Clock className="w-3.5 h-3.5 text-blue-500 animate-pulse" />
-              <span>{TRANSLATIONS[lang].systemLocalTime}: {clientTime.toLocaleDateString(lang === 'vi' ? 'vi-VN' : 'en-US')} {clientTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}</span>
+              <span>
+                {TRANSLATIONS[lang].systemLocalTime}: {clientTime.toLocaleDateString(lang === 'vi' ? 'vi-VN' : 'en-US')} {clientTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                {userTimezone && <span className="ml-2 text-blue-400 text-[9px] bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-full font-sans uppercase font-extrabold">{userTimezone}</span>}
+              </span>
             </div>
             {isLoadingAPI ? (
               <span className="text-amber-500 animate-pulse flex items-center gap-1">
@@ -2295,6 +2562,63 @@ export default function SportsBettingGame() {
             )}
           </div>
         )}
+      </div>
+
+      {/* Premium Special Promotion Events & Boosts Panel */}
+      <div className="flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <div className="w-1.5 h-4 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-full animate-pulse" />
+          <h2 className="text-xs font-black uppercase tracking-wider text-neutral-200">
+            {lang === 'vi' ? '🎁 SỰ KIỆN KHUYẾN MÃI & TĂNG TỶ LỆ TRỰC TIẾP' : '🎁 LIVE PROMOTIONAL EVENTS & PAYOUT BOOSTS'}
+          </h2>
+        </div>
+        <div className="flex items-stretch gap-4 overflow-x-auto pb-3.5 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+          {SPORTS_EVENTS.map(evt => {
+            const title = lang === 'vi' ? evt.titleVi : evt.titleEn;
+            const desc = lang === 'vi' ? evt.descVi : evt.descEn;
+            const badge = lang === 'vi' ? evt.badgeVi : evt.badgeEn;
+            
+            return (
+              <div 
+                key={evt.id}
+                className="w-72 shrink-0 bg-luxury-surface/30 backdrop-blur-md border border-luxury-border/40 hover:border-blue-500/40 rounded-2xl p-4.5 flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_25px_rgba(59,130,246,0.1)] relative overflow-hidden group select-none"
+              >
+                {/* Diagonal background gradient glow */}
+                <div className="absolute -top-12 -right-12 w-24 h-24 rounded-full bg-blue-500/10 blur-xl group-hover:scale-125 transition-transform duration-500 pointer-events-none" />
+                
+                <div className="flex flex-col gap-2.5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xl">{evt.icon}</span>
+                      <h3 className="text-xs font-extrabold text-white truncate max-w-[150px]">{title}</h3>
+                    </div>
+                    <span className="text-[9px] font-black tracking-wider uppercase bg-blue-500/15 border border-blue-500/30 text-blue-400 px-2 py-0.5 rounded-full">
+                      {badge}
+                    </span>
+                  </div>
+                  
+                  <p className="text-[10px] text-neutral-400 font-medium leading-relaxed">
+                    {desc}
+                  </p>
+                </div>
+                
+                {/* Bottom row: active badge & status */}
+                <div className="mt-4 pt-3 border-t border-luxury-border/25 flex items-center justify-between">
+                  <div className="flex items-center gap-1.5 text-[8px] text-neutral-500 font-black uppercase tracking-wider">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400"></span>
+                    </span>
+                    <span>{lang === 'vi' ? 'Đang Diễn Ra' : 'Active Event'}</span>
+                  </div>
+                  <span className="text-[8px] bg-neutral-900 border border-neutral-800 text-neutral-500 font-bold px-2 py-0.5 rounded-md uppercase">
+                    {evt.id === 'final_fest' || evt.id === 'euro_latino' ? (lang === 'vi' ? 'Trận Chung Kết' : 'Final Match') : (lang === 'vi' ? 'Mọi Trận' : 'All Matches')}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
       </div>
 
       {/* Premium Horizontal Sport Selection Bar */}
@@ -2442,14 +2766,24 @@ export default function SportsBettingGame() {
                             onClick={() => { setSelectedMatch(match); playClick(); }}
                             className={`flex items-center justify-between p-4 cursor-pointer transition-all duration-300 rounded-xl border ${
                               isSelected 
-                                ? 'bg-blue-950/20 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.25)] scale-[1.02] -translate-y-0.5' 
+                                ? match.id === '104'
+                                  ? 'bg-yellow-950/20 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.25)] scale-[1.02] -translate-y-0.5'
+                                  : 'bg-blue-950/20 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.25)] scale-[1.02] -translate-y-0.5' 
+                                : match.id === '104'
+                                ? 'bg-yellow-950/5 border-yellow-500/20 hover:border-yellow-500/40 hover:shadow-[0_0_15px_rgba(234,179,8,0.1)] hover:scale-[1.01] hover:-translate-y-0.5'
                                 : 'bg-neutral-950/40 border-luxury-border/60 hover:border-blue-500/35 hover:shadow-[0_0_15px_rgba(59,130,246,0.1)] hover:scale-[1.01] hover:-translate-y-0.5'
                             }`}
                           >
                             <div className="flex flex-col gap-2 flex-grow pr-3">
-                              <div className="flex items-center gap-2 flex-wrap">
-                                <span className="text-[9px] bg-neutral-900 border border-neutral-800 text-neutral-400 font-extrabold px-1.5 py-0.5 rounded uppercase">
-                                  {lang === 'vi' ? `Bảng ${match.group}` : `Group ${match.group}`}
+                               <div className="flex items-center gap-2 flex-wrap">
+                                <span className={`text-[9px] font-extrabold px-1.5 py-0.5 rounded uppercase border ${
+                                  match.id === '104'
+                                    ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400 animate-pulse'
+                                    : match.id === '103'
+                                    ? 'bg-blue-500/10 border-blue-500/30 text-blue-400'
+                                    : 'bg-neutral-900 border-neutral-800 text-neutral-400'
+                                }`}>
+                                  {formatGroupLabel(match.group, lang)}
                                 </span>
                                 {matchBetCount > 0 && (
                                   <span className="text-[9px] bg-blue-950/50 border border-blue-500/30 text-blue-400 font-black px-1.5 py-0.5 rounded-full">
@@ -3027,6 +3361,8 @@ export default function SportsBettingGame() {
                   <div className={`relative w-full p-6 rounded-2xl border text-center flex flex-col items-center gap-3 overflow-hidden ${
                     settleOutcome.outcome === 'win'
                       ? 'bg-gradient-to-br from-emerald-950/40 via-emerald-900/20 to-black border-emerald-500/35 text-emerald-400 shadow-[0_0_20px_rgba(16,185,129,0.15)]'
+                      : settleOutcome.outcome === 'refund'
+                      ? 'bg-gradient-to-br from-amber-950/40 via-amber-900/20 to-black border-amber-500/35 text-amber-400 shadow-[0_0_20px_rgba(245,158,11,0.15)]'
                       : 'bg-gradient-to-br from-red-950/40 via-red-900/20 to-black border-red-500/35 text-red-400 shadow-[0_0_20px_rgba(239,68,68,0.08)]'
                   }`}>
                     {/* Ticket notches */}
@@ -3043,6 +3379,11 @@ export default function SportsBettingGame() {
                             <CheckCircle2 className="w-5 h-5 text-emerald-400 animate-bounce" />
                             <span className="text-sm font-black uppercase tracking-widest bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent">{TRANSLATIONS[lang].winningBetSlip}</span>
                           </>
+                        ) : settleOutcome.outcome === 'refund' ? (
+                          <>
+                            <AlertCircle className="w-5 h-5 text-amber-400 animate-bounce" />
+                            <span className="text-sm font-black uppercase tracking-widest bg-gradient-to-r from-amber-400 to-yellow-300 bg-clip-text text-transparent">{lang === 'vi' ? 'HOÀN TRẢ PHIẾU CƯỢC' : 'REFUNDED BET SLIP'}</span>
+                          </>
                         ) : (
                           <>
                             <X className="w-5 h-5 text-red-400 animate-pulse" />
@@ -3051,11 +3392,38 @@ export default function SportsBettingGame() {
                         )}
                       </div>
                     </div>
+
+                    {/* Applied Promotional Boosts list */}
+                    {settleOutcome.triggeredEvents && settleOutcome.triggeredEvents.length > 0 && (
+                      <div className="flex flex-col gap-1.5 items-center w-full z-10 pb-4 mt-1">
+                        <span className="text-[7.5px] text-neutral-500 font-extrabold uppercase tracking-widest leading-none">
+                          {lang === 'vi' ? 'Khuyến mãi đã kích hoạt' : 'Triggered Promotions'}
+                        </span>
+                        <div className="flex flex-wrap gap-1 justify-center max-w-[220px]">
+                          {settleOutcome.triggeredEvents.map(evtId => {
+                            const evt = SPORTS_EVENTS.find(e => e.id === evtId);
+                            if (!evt) return null;
+                            const title = lang === 'vi' ? evt.titleVi : evt.titleEn;
+                            return (
+                              <span key={evtId} className="text-[7.5px] font-black uppercase bg-white/5 border border-white/10 px-2 py-0.5 rounded-full flex items-center gap-1 text-white">
+                                <span>{evt.icon}</span>
+                                <span>{title}</span>
+                                <span className={evt.id === 'draw_insurance' ? 'text-amber-400' : 'text-blue-400'}>
+                                  ({evt.id === 'draw_insurance' ? 'Refund' : `${evt.multiplier}x`})
+                                </span>
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                     
                     <div className="pt-4 z-10">
                       <span className="text-xl font-black block tracking-wide">
                         {settleOutcome.outcome === 'win' 
                           ? TRANSLATIONS[lang].youWonMsg.replace('{amount}', `$${settleOutcome.payout.toLocaleString(undefined, { minimumFractionDigits: 2 })}`) 
+                          : settleOutcome.outcome === 'refund'
+                          ? (lang === 'vi' ? `Hoàn trả $${settleOutcome.payout.toLocaleString(undefined, { minimumFractionDigits: 2 })} Tín dụng!` : `Refunded $${settleOutcome.payout.toLocaleString(undefined, { minimumFractionDigits: 2 })} Credits!`)
                           : TRANSLATIONS[lang].lostStakeMsg.replace('{amount}', `$${settleOutcome.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`)}
                       </span>
                       <span className="text-[8px] text-neutral-500 font-extrabold tracking-widest uppercase block mt-1">
