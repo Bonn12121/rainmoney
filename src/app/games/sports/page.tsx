@@ -1516,6 +1516,26 @@ const mapEspnEventToMatch = (event: any, sportId: string): RawMatch => {
   };
 };
 
+const getStadiumName = (match: RawMatch): string => {
+  if (match.id === '104' || match.group === 'FINAL') {
+    return 'MetLife Stadium';
+  }
+  if (match.id === '103' || match.group === '3RD') {
+    return 'Hard Rock Stadium, Florida';
+  }
+  const stadiums: Record<string, string> = {
+    '1': 'Lusail Iconic Stadium',
+    '2': 'Al Bayt Stadium',
+    '3': 'Khalifa International Stadium',
+    '4': 'Ahmad bin Ali Stadium',
+    '5': 'Education City Stadium',
+    '6': 'Al Thumama Stadium',
+    '7': 'Al Janoub Stadium',
+    '8': 'Stadium 974',
+  };
+  return stadiums[match.stadium_id || '1'] || 'Lusail Iconic Stadium';
+};
+
 interface MarketAccordionProps {
   title: string;
   badge?: string;
@@ -3058,34 +3078,10 @@ export default function SportsBettingGame() {
         {/* Left column (2-cols wide): Fixtures Catalog */}
         <div className="lg:col-span-2 flex flex-col gap-6">
           
-          <Card className="bg-[#0b0b0b] border-luxury-border rounded-3xl">
-            <CardHeader className="p-5 border-b border-luxury-border/60 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex flex-col gap-4">
+            <div className="pb-3 border-b border-luxury-border/30 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest leading-none block">{TRANSLATIONS[lang].schedule}</span>
-                
-                {/* Tabs selection */}
-                <div className="flex items-center gap-2 mt-3 bg-black/40 border border-luxury-border/60 p-1 rounded-full w-fit">
-                  <button
-                    onClick={() => { setFixtureTab('upcoming'); playClick(); }}
-                    className={`px-4 py-1.5 text-[10px] font-extrabold uppercase tracking-wider rounded-full transition-all cursor-pointer ${
-                      fixtureTab === 'upcoming'
-                        ? 'bg-blue-600 text-white shadow-md'
-                        : 'text-neutral-400 hover:text-white'
-                    }`}
-                  >
-                    {TRANSLATIONS[lang].upcomingOnly}
-                  </button>
-                  <button
-                    onClick={() => { setFixtureTab('all'); playClick(); }}
-                    className={`px-4 py-1.5 text-[10px] font-extrabold uppercase tracking-wider rounded-full transition-all cursor-pointer ${
-                      fixtureTab === 'all'
-                        ? 'bg-blue-600 text-white shadow-md'
-                        : 'text-neutral-400 hover:text-white'
-                    }`}
-                  >
-                    {TRANSLATIONS[lang].allFixtures}
-                  </button>
-                </div>
               </div>
 
               {/* Search and Filters */}
@@ -3116,9 +3112,9 @@ export default function SportsBettingGame() {
                 </select>
 
               </div>
-            </CardHeader>
+            </div>
             
-            <CardContent className="p-5 max-h-[600px] overflow-y-auto flex flex-col gap-6">
+            <div className="max-h-[600px] overflow-y-auto flex flex-col gap-6 pr-1 scrollbar-thin">
               {filteredMatches.length === 0 ? (
                 <div className="p-12 text-center text-xs text-neutral-500 flex flex-col items-center gap-2">
                   <AlertCircle className="w-6 h-6 text-neutral-600" />
@@ -3126,11 +3122,11 @@ export default function SportsBettingGame() {
                 </div>
               ) : (
                 groupMatches(filteredMatches, clientTime || new Date(), lang).map((group, groupIdx) => (
-                  <div key={groupIdx} className="shrink-0 border border-luxury-border/60 rounded-2xl overflow-hidden bg-black/25">
-                    <div className="bg-neutral-900/60 px-4 py-2.5 border-b border-luxury-border/60 text-[10px] font-black text-neutral-300 uppercase tracking-wider">
+                  <div key={groupIdx} className="shrink-0 border border-white/5 rounded-2xl overflow-hidden bg-white/2 backdrop-blur-sm">
+                    <div className="bg-white/5 px-4 py-2.5 border-b border-white/5 text-[10px] font-black text-neutral-350 uppercase tracking-wider">
                       {group.title}
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-black/25">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-transparent">
                       {group.matches.map((match, idx) => {
                         const home = getTeam(match.home_team_id, match, 'home');
                         const away = getTeam(match.away_team_id, match, 'away');
@@ -3149,7 +3145,7 @@ export default function SportsBettingGame() {
                         const matchBetCount = activeBets.filter(b => b.match.id === match.id).length;
 
                         let statusText = TRANSLATIONS[lang].upcoming;
-                        let statusColor = 'text-neutral-500 border-neutral-800 bg-neutral-900/40';
+                        let statusColor = 'text-neutral-555 border-neutral-800 bg-neutral-900/40';
                         if (isLive) {
                           statusText = TRANSLATIONS[lang].live;
                           statusColor = 'text-amber-400 border-amber-500/20 bg-amber-500/5 animate-pulse';
@@ -3171,11 +3167,11 @@ export default function SportsBettingGame() {
                             className={`flex items-center justify-between p-4 cursor-pointer transition-all duration-300 rounded-xl border ${
                               isSelected 
                                 ? match.id === '104'
-                                  ? 'bg-yellow-950/20 border-yellow-500 shadow-[0_0_15px_rgba(234,179,8,0.25)] scale-[1.02] -translate-y-0.5'
-                                  : 'bg-blue-950/20 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.25)] scale-[1.02] -translate-y-0.5' 
+                                  ? 'bg-yellow-500/10 border-yellow-500/50 backdrop-blur-md shadow-[0_0_15px_rgba(234,179,8,0.25)] scale-[1.02] -translate-y-0.5'
+                                  : 'bg-blue-600/15 border-blue-500/50 backdrop-blur-md shadow-[0_0_15px_rgba(59,130,246,0.25)] scale-[1.02] -translate-y-0.5' 
                                 : match.id === '104'
-                                ? 'bg-yellow-950/5 border-yellow-500/20 hover:border-yellow-500/40 hover:shadow-[0_0_15px_rgba(234,179,8,0.1)] hover:scale-[1.01] hover:-translate-y-0.5'
-                                : 'bg-neutral-950/40 border-luxury-border/60 hover:border-blue-500/35 hover:shadow-[0_0_15px_rgba(59,130,246,0.1)] hover:scale-[1.01] hover:-translate-y-0.5'
+                                ? 'bg-yellow-500/5 border-yellow-500/20 backdrop-blur-sm hover:border-yellow-500/40 hover:bg-yellow-500/10 hover:shadow-[0_0_15px_rgba(234,179,8,0.1)] hover:scale-[1.01] hover:-translate-y-0.5'
+                                : 'bg-white/5 border-white/10 backdrop-blur-sm hover:border-blue-500/35 hover:bg-white/10 hover:shadow-[0_0_15px_rgba(59,130,246,0.1)] hover:scale-[1.01] hover:-translate-y-0.5'
                             }`}
                           >
                             <div className="flex flex-col gap-2 flex-grow pr-3">
@@ -3225,7 +3221,12 @@ export default function SportsBettingGame() {
                                 {timeLines[1] && <span className="text-white font-mono mt-0.5">{timeLines[1]}</span>}
                               </div>
                               
-                              <MatchStoryThumbnail matchId={match.id} />
+                              <span 
+                                className="text-[8px] text-neutral-450 font-bold uppercase tracking-wider text-center mt-1 max-w-[100px] leading-tight line-clamp-2"
+                                title={getStadiumName(match)}
+                              >
+                                {getStadiumName(match)}
+                              </span>
                             </div>
                           </div>
                         );
@@ -3234,8 +3235,8 @@ export default function SportsBettingGame() {
                   </div>
                 ))
               )}
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* My Active Bets Ledger */}
           <Card className="bg-[#0b0b0b] border-luxury-border rounded-3xl">
