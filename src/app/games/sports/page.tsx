@@ -1616,6 +1616,15 @@ export default function SportsBettingGame() {
     }
   }, [selectedMatch]);
 
+  // Synchronize correct score bet slip values when inputs change dynamically
+  useEffect(() => {
+    if (betType === 'correct_score_2h' && selectedOutcome === 'correct_score') {
+      const csOdds = calculateCorrectScoreOdds(guessHomeScore, guessAwayScore);
+      setSelectedSlipOdds(csOdds);
+      setSelectedSlipPredictionLabel(`${guessHomeScore} - ${guessAwayScore}`);
+    }
+  }, [guessHomeScore, guessAwayScore, betType, selectedOutcome]);
+
   const selectBetSlipWager = (
     type: '1x2' | 'early_cashout' | 'double_chance' | 'btts' | 'red_card' | 'correct_score_2h' | 'first_half_1x2' | 'second_half_1x2' | 'totals' | 'clean_sheet', 
     prediction: string, 
@@ -3177,6 +3186,154 @@ export default function SportsBettingGame() {
                         <span className="text-neutral-600 font-bold">vs</span>
                         <span>{awayLabel}</span>
                       </div>
+                    </div>
+
+                    {/* Markets Panel */}
+                    <div className="flex flex-col gap-3 my-2">
+                      <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">
+                        {lang === 'vi' ? 'Bảng tỷ lệ cược' : 'Markets Panel'}
+                      </span>
+                      
+                      {/* 1X2 Market Accordion */}
+                      <MarketAccordion 
+                        title="1X2 Match Winner" 
+                        badge="Popular"
+                        tooltip={lang === 'vi' ? 'Dự đoán kết quả thắng/hòa/thua chung cuộc' : 'Predict the full-time match result (Home win, Draw, or Away win).'}
+                      >
+                        <div className="grid grid-cols-3 gap-2">
+                          <OddsButton 
+                            label={homeLabelRaw} 
+                            odds={oddsHome} 
+                            selected={betType === '1x2' && selectedOutcome === 'home'}
+                            onClick={() => selectBetSlipWager('1x2', 'home', oddsHome, '1X2', home.name_en)}
+                          />
+                          <OddsButton 
+                            label={lang === 'vi' ? 'Hòa' : 'Draw'} 
+                            odds={oddsDraw} 
+                            selected={betType === '1x2' && selectedOutcome === 'draw'}
+                            onClick={() => selectBetSlipWager('1x2', 'draw', oddsDraw, '1X2', 'Draw')}
+                          />
+                          <OddsButton 
+                            label={awayLabelRaw} 
+                            odds={oddsAway} 
+                            selected={betType === '1x2' && selectedOutcome === 'away'}
+                            onClick={() => selectBetSlipWager('1x2', 'away', oddsAway, '1X2', away.name_en)}
+                          />
+                        </div>
+                      </MarketAccordion>
+
+                      {/* Early Cashout Accordion */}
+                      <MarketAccordion 
+                        title={lang === 'vi' ? 'Quyết Toán Sớm (Dẫn 2 Bàn)' : 'Early Cashout (2-0 Lead Wins)'} 
+                        badge="Insurance"
+                        tooltip={lang === 'vi' ? 'Đặt cửa thắng. Nếu đội bạn chọn dẫn trước 2 bàn tại bất kỳ thời điểm nào, cược thắng ngay lập tức!' : 'Back a team to win. If they lead by 2 goals at any point, your bet is settled as a win instantly!'}
+                      >
+                        <div className="grid grid-cols-2 gap-2">
+                          <OddsButton 
+                            label={homeLabelRaw} 
+                            odds={Math.max(1.05, Math.round(oddsHome * 0.92 * 100) / 100)} 
+                            selected={betType === 'early_cashout' && selectedOutcome === 'home'}
+                            onClick={() => selectBetSlipWager('early_cashout', 'home', Math.max(1.05, Math.round(oddsHome * 0.92 * 100) / 100), 'Early Cashout', home.name_en)}
+                          />
+                          <OddsButton 
+                            label={awayLabelRaw} 
+                            odds={Math.max(1.05, Math.round(oddsAway * 0.92 * 100) / 100)} 
+                            selected={betType === 'early_cashout' && selectedOutcome === 'away'}
+                            onClick={() => selectBetSlipWager('early_cashout', 'away', Math.max(1.05, Math.round(oddsAway * 0.92 * 100) / 100), 'Early Cashout', away.name_en)}
+                          />
+                        </div>
+                      </MarketAccordion>
+
+                      {/* Red Card Accordion */}
+                      <MarketAccordion 
+                        title={lang === 'vi' ? 'Thẻ Đỏ Trận Đấu' : 'Red Card Given'} 
+                        tooltip={lang === 'vi' ? 'Dự đoán trận đấu có thẻ đỏ hay không' : 'Predict whether any player will be sent off (receive a red card) during the match.'}
+                      >
+                        <div className="grid grid-cols-2 gap-2">
+                          <OddsButton 
+                            label={lang === 'vi' ? 'Có' : 'Yes'} 
+                            odds={4.50} 
+                            selected={betType === 'red_card' && selectedOutcome === 'yes'}
+                            onClick={() => selectBetSlipWager('red_card', 'yes', 4.50, 'Red Card', lang === 'vi' ? 'Có thẻ đỏ' : 'Yes')}
+                          />
+                          <OddsButton 
+                            label={lang === 'vi' ? 'Không' : 'No'} 
+                            odds={1.15} 
+                            selected={betType === 'red_card' && selectedOutcome === 'no'}
+                            onClick={() => selectBetSlipWager('red_card', 'no', 1.15, 'Red Card', lang === 'vi' ? 'Không thẻ đỏ' : 'No')}
+                          />
+                        </div>
+                      </MarketAccordion>
+
+                      {/* Correct Score 2H Accordion */}
+                      <MarketAccordion 
+                        title={lang === 'vi' ? 'Tỷ Số Hiệp 2' : 'Correct Score 2nd Half'} 
+                        badge="150x Max"
+                        tooltip={lang === 'vi' ? 'Dự đoán chính xác tỷ số chỉ tính riêng trong hiệp 2' : 'Predict the exact goals scored by each team in the second half only.'}
+                      >
+                        <div className="flex flex-col gap-3 bg-neutral-900/30 p-3 rounded-xl border border-luxury-border/30">
+                          <div className="flex items-center justify-around gap-4">
+                            <div className="flex flex-col items-center gap-1.5">
+                              <span className="text-[10px] text-neutral-500 font-bold uppercase truncate max-w-[80px]">{homeLabel}</span>
+                              <div className="flex items-center gap-1">
+                                <button 
+                                  onClick={() => { setGuessHomeScore(Math.max(0, guessHomeScore - 1)); playClick(); }}
+                                  className="w-6 h-6 rounded-full bg-neutral-800 text-white font-bold flex items-center justify-center hover:bg-neutral-750 text-[10px]"
+                                >
+                                  -
+                                </button>
+                                <span className="w-6 text-center text-xs font-black text-white font-mono">{guessHomeScore}</span>
+                                <button 
+                                  onClick={() => { setGuessHomeScore(guessHomeScore + 1); playClick(); }}
+                                  className="w-6 h-6 rounded-full bg-neutral-800 text-white font-bold flex items-center justify-center hover:bg-neutral-750 text-[10px]"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                            <span className="text-neutral-600 font-bold text-xs mt-4">:</span>
+                            <div className="flex flex-col items-center gap-1.5">
+                              <span className="text-[10px] text-neutral-500 font-bold uppercase truncate max-w-[80px]">{awayLabel}</span>
+                              <div className="flex items-center gap-1">
+                                <button 
+                                  onClick={() => { setGuessAwayScore(Math.max(0, guessAwayScore - 1)); playClick(); }}
+                                  className="w-6 h-6 rounded-full bg-neutral-800 text-white font-bold flex items-center justify-center hover:bg-neutral-750 text-[10px]"
+                                >
+                                  -
+                                </button>
+                                <span className="w-6 text-center text-xs font-black text-white font-mono">{guessAwayScore}</span>
+                                <button 
+                                  onClick={() => { setGuessAwayScore(guessAwayScore + 1); playClick(); }}
+                                  className="w-6 h-6 rounded-full bg-neutral-800 text-white font-bold flex items-center justify-center hover:bg-neutral-750 text-[10px]"
+                                >
+                                  +
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between border-t border-luxury-border/20 pt-2.5 mt-1">
+                            <div className="flex flex-col">
+                              <span className="text-[9px] text-neutral-500 font-bold uppercase">{lang === 'vi' ? 'Tỷ số dự đoán' : 'Predicted Score'}</span>
+                              <span className="text-[10px] font-black text-blue-400 font-mono mt-0.5">{guessHomeScore} - {guessAwayScore}</span>
+                            </div>
+                            <button
+                              onClick={() => {
+                                const csOdds = calculateCorrectScoreOdds(guessHomeScore, guessAwayScore);
+                                selectBetSlipWager('correct_score_2h', 'correct_score', csOdds, '2nd Half Score', `${guessHomeScore} - ${guessAwayScore}`);
+                              }}
+                              className={`px-4 py-2 rounded-xl border text-[10px] font-black transition-all cursor-pointer flex items-center gap-2 ${
+                                betType === 'correct_score_2h' && selectedOutcome === 'correct_score'
+                                  ? 'bg-blue-600 border-blue-500 text-white shadow-[0_0_10px_rgba(59,130,246,0.3)]'
+                                  : 'bg-blue-500/10 border-blue-500/25 text-blue-400 hover:bg-blue-500/15'
+                              }`}
+                            >
+                              <span>{lang === 'vi' ? 'Đặt cửa này' : 'Select Score'}</span>
+                              <span className="font-black font-mono">({calculateCorrectScoreOdds(guessHomeScore, guessAwayScore).toFixed(2)}x)</span>
+                            </button>
+                          </div>
+                        </div>
+                      </MarketAccordion>
                     </div>
 
                     {/* Selection details receipt */}
