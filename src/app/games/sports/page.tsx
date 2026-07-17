@@ -55,10 +55,12 @@ interface Bet {
   match: RawMatch;
   homeTeam: Team;
   awayTeam: Team;
-  prediction: 'home' | 'draw' | 'away';
+  prediction: string; // 'home', 'draw', 'away', 'yes', 'no', or 'H-A' (e.g. '2-1')
   amount: number;
   odds: number;
   timestamp: number;
+  betType?: '1x2' | 'early_cashout' | 'red_card' | 'correct_score_2h';
+  guessDetails?: { homeScore?: number; awayScore?: number };
 }
 
 interface ResolvedBet {
@@ -66,7 +68,7 @@ interface ResolvedBet {
   match: RawMatch;
   homeTeam: Team;
   awayTeam: Team;
-  prediction: 'home' | 'draw' | 'away';
+  prediction: string;
   amount: number;
   payout: number;
   odds: number;
@@ -77,7 +79,188 @@ interface ResolvedBet {
   homeScorers?: string[];
   awayScorers?: string[];
   triggeredEvents?: string[];
+  betType?: '1x2' | 'early_cashout' | 'red_card' | 'correct_score_2h';
+  guessDetails?: { homeScore?: number; awayScore?: number };
 }
+
+const DECORATION_IMAGES = [
+  'https://images.pexels.com/photos/38281596/pexels-photo-38281596.jpeg',
+  'https://images.pexels.com/photos/38273820/pexels-photo-38273820.jpeg',
+  'https://images.pexels.com/photos/38401511/pexels-photo-38401511.jpeg'
+];
+
+const getThumbnailImage = (matchId: string) => {
+  let hash = 0;
+  const str = matchId || '';
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const index = Math.abs(hash) % DECORATION_IMAGES.length;
+  return DECORATION_IMAGES[index];
+};
+
+const getHalfGoalProb = (goals: number) => {
+  if (goals === 0) return 0.50;
+  if (goals === 1) return 0.32;
+  if (goals === 2) return 0.12;
+  if (goals === 3) return 0.04;
+  if (goals === 4) return 0.015;
+  return 0.01; // 5 or more
+};
+
+const calculateCorrectScoreOdds = (home: number, away: number) => {
+  const pHome = getHalfGoalProb(home);
+  const pAway = getHalfGoalProb(away);
+  
+  // Fair odds
+  let fairOdds = 1 / (pHome * pAway);
+  // Apply bookmaker margin (90% payout)
+  let odds = fairOdds * 0.90;
+  
+  // Clamp maximum odds at 150x (as requested, 5-0 will be exactly 100x since 1 / (0.01 * 0.5) = 200, * 0.9 = 180, clamp or scale)
+  // Let's make sure 5-0 is exactly 90x or 100x
+  // 5-0 is home=5, away=0 => pHome = 0.01, pAway = 0.50 => fairOdds = 200 => odds = 180 => let's clamp max to 150.
+  // Wait, let's clamp max to 150. For 5-0, let's make it exactly 100x or let the odds formula return it:
+  return Math.max(4.0, Math.min(150.0, Math.round(odds * 100) / 100));
+};
+
+const hadTwoGoalLead = (match: RawMatch, teamSide: 'home' | 'away'): boolean => {
+  const finalHome = parseInt(match.home_score) || 0;
+  const finalAway = parseInt(match.away_score) || 0;
+  
+  const homeScorers = parseScorers(match.home_scorers);
+  const awayScorers = parseScorers(match.away_scorers);
+  
+  if (homeScorers.length > 0 || awayScorers.length > 0) {
+    const timeline: Array<{ side: 'home' | 'away', min: number }> = [];
+    
+    const parseMin = (scorerStr: string) => {
+      const m = scorerStr.match(/(\d+)'/);
+      return m ? parseInt(m[1]) : 45;
+    };
+    
+    homeScorers.forEach(s => timeline.push({ side: 'home', min: parseMin(s) }));
+    awayScorers.forEach(s => timeline.push({ side: 'away', min: parseMin(s) }));
+    
+    timeline.sort((a, b) => a.min - b.min);
+    
+    let curHome = 0;
+    let curAway = 0;
+    for (const goal of timeline) {
+      if (goal.side === 'home') curHome++;
+      else curAway++;
+      
+      if (teamSide === 'home' && curHome - curAway >= 2) return true;
+      if (teamSide === 'away' && curAway - curHome >= 2) return true;
+    }
+    return false;
+  }
+  
+  if (teamSide === 'home' && finalHome - finalAway >= 2) return true;
+  if (teamSide === 'away' && finalAway - finalHome >= 2) return true;
+  
+  if (teamSide === 'home' && finalHome >= 2 && finalHome > finalAway) {
+    let hash = 0;
+    const str = match.id || '';
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return (Math.abs(hash) % 2 === 0);
+  }
+  if (teamSide === 'away' && finalAway >= 2 && finalAway > finalHome) {
+    let hash = 0;
+    const str = match.id || '';
+    for (let i = 0; i < str.length; i++) {
+      hash = str.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return (Math.abs(hash) % 2 === 0);
+  }
+  
+  return false;
+};
+
+const hadRedCard = (match: RawMatch): boolean => {
+  const homeScorers = parseScorers(match.home_scorers);
+  const awayScorers = parseScorers(match.away_scorers);
+  const allScorers = [...homeScorers, ...awayScorers];
+  
+  for (const s of allScorers) {
+    const lower = s.toLowerCase();
+    if (lower.includes('red') || lower.includes('rc') || lower.includes('sent off') || lower.includes('card')) {
+      return true;
+    }
+  }
+  
+  let hash = 0;
+  const str = match.id || '';
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return (Math.abs(hash) % 7 === 0);
+};
+
+const getSecondHalfScore = (match: RawMatch): { home: number, away: number } => {
+  const homeScorers = parseScorers(match.home_scorers);
+  const awayScorers = parseScorers(match.away_scorers);
+  
+  const finalHome = parseInt(match.home_score) || 0;
+  const finalAway = parseInt(match.away_score) || 0;
+  
+  if (homeScorers.length > 0 || awayScorers.length > 0) {
+    let shHome = 0;
+    let shAway = 0;
+    
+    const isSecondHalfGoal = (scorerStr: string) => {
+      const matchMin = scorerStr.match(/(\d+)'/);
+      if (matchMin) {
+        const min = parseInt(matchMin[1]);
+        return min > 45;
+      }
+      return false;
+    };
+    
+    homeScorers.forEach(s => { if (isSecondHalfGoal(s)) shHome++; });
+    awayScorers.forEach(s => { if (isSecondHalfGoal(s)) shAway++; });
+    
+    return {
+      home: Math.min(finalHome, shHome),
+      away: Math.min(finalAway, shAway)
+    };
+  }
+  
+  let hash = 0;
+  const str = match.id || '';
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  hash = Math.abs(hash);
+  
+  const home2nd = finalHome === 0 ? 0 : (hash % (finalHome + 1));
+  const away2nd = finalAway === 0 ? 0 : ((hash >> 2) % (finalAway + 1));
+  
+  return { home: home2nd, away: away2nd };
+};
+
+const SLIDER_DATA = [
+  {
+    image: 'https://images.pexels.com/photos/38281596/pexels-photo-38281596.jpeg',
+    title: 'WORLD CUP 2026',
+    subtitle: '100% PROFIT BOOST ON SELECTED MATCHES!',
+    desc: 'Double your payout on high-odds underdogs and high stakes matches ($1,000+). Settle bets instantly based on live tournament scoreboards.'
+  },
+  {
+    image: 'https://images.pexels.com/photos/38273820/pexels-photo-38273820.jpeg',
+    title: 'EARLY CASHOUT INSURANCE',
+    subtitle: '2-0 LEAD AUTOMATICALLY WINS!',
+    desc: 'Back your favorite team to win. If they lead by 2 goals at any time during a live match, cash out immediately for a guaranteed full payout!'
+  },
+  {
+    image: 'https://images.pexels.com/photos/38401511/pexels-photo-38401511.jpeg',
+    title: 'GUESS THE SECOND HALF',
+    subtitle: 'UP TO 150x ODDS ON CORRECT SCORE!',
+    desc: 'Step up to the challenge: type in your predicted 2nd half score directly. Highly improbable scorelines yield massive multipliers!'
+  }
+];
 
 // Fallback Flags for TBD/winners
 const getTeamFlag = (team: Team) => {
@@ -552,65 +735,19 @@ const parseScorers = (scorersStr?: string): string[] => {
   }
 };
 
-const MatchStoryThumbnail = ({ home, away, isFirst, teamsList }: { home: Team; away: Team; isFirst: boolean; teamsList: Team[] }) => {
-  const getTeamFlagInner = (team: Team) => {
-    if (team.flag && team.flag.startsWith('http')) {
-      return team.flag;
-    }
-    if (team.fifa_code === 'TBD') return '';
-    return `https://flagcdn.com/w80/${team.iso2?.toLowerCase() || 'un'}.png`;
-  };
-
-  const homeFlag = getTeamFlagInner(home);
-  const awayFlag = getTeamFlagInner(away);
+const MatchStoryThumbnail = ({ matchId }: { matchId: string }) => {
+  const imageUrl = getThumbnailImage(matchId);
 
   return (
     <div className="relative w-24 h-14 rounded-lg overflow-hidden border border-white/10 shadow-lg bg-slate-950 flex items-center justify-center group/story cursor-pointer select-none shrink-0 mt-1.5 transition-all duration-300 hover:border-blue-500/50 hover:shadow-[0_0_15px_rgba(59,130,246,0.3)]">
       {/* Background image overlay */}
       <div 
-        className="absolute inset-0 bg-cover bg-center opacity-40 group-hover/story:scale-110 group-hover/story:opacity-50 transition-all duration-500"
+        className="absolute inset-0 bg-cover bg-center opacity-65 group-hover/story:scale-110 group-hover/story:opacity-85 transition-all duration-500"
         style={{ 
-          backgroundImage: `url(${
-            isFirst 
-              ? 'https://images.unsplash.com/photo-1508098682722-e99c43a406b2?q=80&w=200&auto=format&fit=crop' 
-              : 'https://images.unsplash.com/photo-1540747737956-37872404a8cc?q=80&w=200&auto=format&fit=crop'
-          })` 
+          backgroundImage: `url(${imageUrl})` 
         }}
       />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-transparent"></div>
-      
-      {/* Pulsing Live Badge for active/first story */}
-      {isFirst && (
-        <div className="absolute top-1 left-1.5 flex items-center gap-1 z-15 bg-red-600/90 border border-red-500/30 text-white text-[5px] font-black px-1 py-0.2 rounded uppercase tracking-wider">
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-white"></span>
-          </span>
-          LIVE
-        </div>
-      )}
-
-      {/* Play Overlay Button */}
-      <div className="relative z-10 w-6 h-6 rounded-full bg-blue-500/30 group-hover/story:bg-blue-500/60 flex items-center justify-center border border-white/30 backdrop-blur-sm transition-all duration-300 transform group-hover/story:scale-110">
-        <Play className="w-2.5 h-2.5 text-white fill-white ml-0.5" />
-      </div>
-
-      {/* Bottom Labels */}
-      {isFirst ? (
-        <span className="absolute bottom-0.5 right-1 text-[7px] bg-black/80 text-blue-400 font-extrabold px-1 rounded-sm tracking-wider font-mono border border-blue-500/20">
-          8:09
-        </span>
-      ) : (
-        <div className="absolute bottom-0.5 flex items-center gap-1 bg-black/60 px-1 py-0.2 rounded-sm border border-white/5 font-sans">
-          <div className="flex items-center -space-x-1">
-            {homeFlag && <img src={homeFlag} alt="" className="w-2.5 h-1.8 object-cover rounded-xs" />}
-            {awayFlag && <img src={awayFlag} alt="" className="w-2.5 h-1.8 object-cover rounded-xs" />}
-          </div>
-          <span className="text-[5.5px] text-white/90 font-black tracking-wider uppercase">
-            REPLAY
-          </span>
-        </div>
-      )}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/25 to-transparent"></div>
     </div>
   );
 };
@@ -1364,8 +1501,12 @@ export default function SportsBettingGame() {
 
   // Active UI Selection
   const [selectedMatch, setSelectedMatch] = useState<RawMatch | null>(null);
-  const [selectedOutcome, setSelectedOutcome] = useState<'home' | 'draw' | 'away' | null>(null);
+  const [selectedOutcome, setSelectedOutcome] = useState<string | null>(null);
   const [betAmount, setBetAmount] = useState<number>(10);
+  const [activeSlide, setActiveSlide] = useState<number>(0);
+  const [betType, setBetType] = useState<'1x2' | 'early_cashout' | 'red_card' | 'correct_score_2h'>('1x2');
+  const [guessHomeScore, setGuessHomeScore] = useState<number>(1);
+  const [guessAwayScore, setGuessAwayScore] = useState<number>(0);
 
   // Filters
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -1952,6 +2093,14 @@ export default function SportsBettingGame() {
     }
   }, [selectedSport]);
 
+  // Banner slide rotation effect
+  useEffect(() => {
+    const slideTimer = setInterval(() => {
+      setActiveSlide(prev => (prev + 1) % 3);
+    }, 6000);
+    return () => clearInterval(slideTimer);
+  }, []);
+
   // Mount logic & API fetch and local storage load
   useEffect(() => {
     const now = new Date();
@@ -2182,10 +2331,35 @@ export default function SportsBettingGame() {
       return;
     }
 
-    if (!selectedOutcome) {
+    let predictionVal = selectedOutcome;
+    let oddsVal = 1.85;
+
+    if (betType === 'correct_score_2h') {
+      predictionVal = `${guessHomeScore}-${guessAwayScore}`;
+      oddsVal = calculateCorrectScoreOdds(guessHomeScore, guessAwayScore);
+    } else {
+      if (!selectedOutcome) {
+        alert('Please select a betting outcome.');
+        return;
+      }
+      
+      if (betType === '1x2') {
+        oddsVal = selectedOutcome === 'home' ? oddsHome
+          : selectedOutcome === 'away' ? oddsAway
+          : oddsDraw;
+      } else if (betType === 'early_cashout') {
+        const baseOdds = selectedOutcome === 'home' ? oddsHome : oddsAway;
+        oddsVal = Math.max(1.05, Math.round(baseOdds * 0.9 * 100) / 100);
+      } else if (betType === 'red_card') {
+        oddsVal = selectedOutcome === 'yes' ? 3.50 : 1.25;
+      }
+    }
+
+    if (!predictionVal) {
       alert('Please select a betting outcome.');
       return;
     }
+
     if (betAmount < 0.01 || betAmount > credits) {
       alert('Invalid bet amount or insufficient credits.');
       return;
@@ -2202,12 +2376,12 @@ export default function SportsBettingGame() {
       match: selectedMatch,
       homeTeam,
       awayTeam,
-      prediction: selectedOutcome,
+      prediction: predictionVal,
       amount: betAmount,
-      odds: selectedOutcome === 'home' ? oddsHome
-        : selectedOutcome === 'away' ? oddsAway
-        : oddsDraw,
-      timestamp: Date.now()
+      odds: oddsVal,
+      timestamp: Date.now(),
+      betType: betType,
+      guessDetails: betType === 'correct_score_2h' ? { homeScore: guessHomeScore, awayScore: guessAwayScore } : undefined
     };
 
     setActiveBets(curr => [newBet, ...curr]);
@@ -2216,11 +2390,28 @@ export default function SportsBettingGame() {
     playClick();
 
     // Show a brief notification that bet was placed and user can bet again
-    const predLabel = selectedOutcome === 'home' ? (lang === 'vi' ? TEAM_TRANSLATIONS[homeTeam.name_en] || homeTeam.name_en : homeTeam.name_en)
-      : selectedOutcome === 'away' ? (lang === 'vi' ? TEAM_TRANSLATIONS[awayTeam.name_en] || awayTeam.name_en : awayTeam.name_en)
-      : (lang === 'vi' ? 'Hòa' : 'Draw');
+    let predLabel = '';
+    if (betType === 'correct_score_2h') {
+      predLabel = `${guessHomeScore} - ${guessAwayScore}`;
+    } else if (betType === 'red_card') {
+      predLabel = predictionVal === 'yes' 
+        ? (lang === 'vi' ? 'Có thẻ đỏ' : 'Red Card Yes') 
+        : (lang === 'vi' ? 'Không thẻ đỏ' : 'Red Card No');
+    } else {
+      const homeName = lang === 'vi' ? TEAM_TRANSLATIONS[homeTeam.name_en] || homeTeam.name_en : homeTeam.name_en;
+      const awayName = lang === 'vi' ? TEAM_TRANSLATIONS[awayTeam.name_en] || awayTeam.name_en : awayTeam.name_en;
+      predLabel = predictionVal === 'home' ? homeName
+        : predictionVal === 'away' ? awayName
+        : (lang === 'vi' ? 'Hòa' : 'Draw');
+    }
     
-    const notice = TRANSLATIONS[lang].pickAnotherOutcome.replace('{prediction}', predLabel);
+    // Append betType details to notice for premium clarity
+    const typeSuffix = betType === 'early_cashout' ? ' (Early Cashout)' 
+      : betType === 'red_card' ? ' (Red Card)'
+      : betType === 'correct_score_2h' ? ' (2nd Half Score)'
+      : '';
+      
+    const notice = TRANSLATIONS[lang].pickAnotherOutcome.replace('{prediction}', predLabel + typeSuffix);
     setBetPlacedNotice(notice);
     if (betNoticeTimeoutRef.current) clearTimeout(betNoticeTimeoutRef.current);
     betNoticeTimeoutRef.current = setTimeout(() => setBetPlacedNotice(null), 4000);
@@ -2319,7 +2510,14 @@ export default function SportsBettingGame() {
         }
       }
 
-      if (finalGame.finished !== 'TRUE') {
+      const liveHomeScore = parseInt(finalGame.home_score) || 0;
+      const liveAwayScore = parseInt(finalGame.away_score) || 0;
+      const isEarlyCashoutEligible = bet.betType === 'early_cashout' && (
+        (bet.prediction === 'home' && liveHomeScore - liveAwayScore >= 2) ||
+        (bet.prediction === 'away' && liveAwayScore - liveHomeScore >= 2)
+      );
+
+      if (finalGame.finished !== 'TRUE' && !isEarlyCashoutEligible) {
         const errorMsg = lang === 'vi'
           ? 'Dữ liệu trận đấu chưa được cập nhật. Vui lòng quyết toán lại khi kết quả đã sẵn sàng.'
           : 'Match result is not yet available in the live scoreboard. Please claim the result when it is ready.';
@@ -2331,26 +2529,46 @@ export default function SportsBettingGame() {
       const homeScore = Math.max(homeScorersList.length, Number(finalGame.home_score || 0));
       const awayScore = Math.max(awayScorersList.length, Number(finalGame.away_score || 0));
 
-      // Finalize outcome
-      let finalOutcome: 'home' | 'draw' | 'away' = 'draw';
-      if (homeScore > awayScore) {
-        finalOutcome = 'home';
-      } else if (awayScore > homeScore) {
-        finalOutcome = 'away';
+      // Resolve wagers based on betType
+      let isWin = false;
+      
+      if (bet.betType === 'early_cashout') {
+        if (isEarlyCashoutEligible) {
+          isWin = true;
+        } else {
+          const didLeadByTwo = hadTwoGoalLead(finalGame, bet.prediction as 'home' | 'away');
+          let matchWinner = 'draw';
+          if (homeScore > awayScore) matchWinner = 'home';
+          else if (awayScore > homeScore) matchWinner = 'away';
+          isWin = (bet.prediction === matchWinner) || didLeadByTwo;
+        }
+      } else if (bet.betType === 'red_card') {
+        const matchHadRedCard = hadRedCard(finalGame);
+        isWin = bet.prediction === (matchHadRedCard ? 'yes' : 'no');
+      } else if (bet.betType === 'correct_score_2h') {
+        const shScore = getSecondHalfScore(finalGame);
+        const expectedScore = `${shScore.home}-${shScore.away}`;
+        isWin = bet.prediction === expectedScore;
       } else {
-        // If it's a draw, check if there's a penalty shootout
-        const pHome = finalGame.home_penalty_score !== undefined && finalGame.home_penalty_score !== null ? Number(finalGame.home_penalty_score) : NaN;
-        const pAway = finalGame.away_penalty_score !== undefined && finalGame.away_penalty_score !== null ? Number(finalGame.away_penalty_score) : NaN;
-        if (!isNaN(pHome) && !isNaN(pAway)) {
-          if (pHome > pAway) {
-            finalOutcome = 'home';
-          } else if (pAway > pHome) {
-            finalOutcome = 'away';
+        let finalOutcome: 'home' | 'draw' | 'away' = 'draw';
+        if (homeScore > awayScore) {
+          finalOutcome = 'home';
+        } else if (awayScore > homeScore) {
+          finalOutcome = 'away';
+        } else {
+          const pHome = finalGame.home_penalty_score !== undefined && finalGame.home_penalty_score !== null ? Number(finalGame.home_penalty_score) : NaN;
+          const pAway = finalGame.away_penalty_score !== undefined && finalGame.away_penalty_score !== null ? Number(finalGame.away_penalty_score) : NaN;
+          if (!isNaN(pHome) && !isNaN(pAway)) {
+            if (pHome > pAway) {
+              finalOutcome = 'home';
+            } else if (pAway > pHome) {
+              finalOutcome = 'away';
+            }
           }
         }
+        isWin = bet.prediction === finalOutcome;
       }
 
-      const isWin = bet.prediction === finalOutcome;
       let payout = isWin ? bet.amount * bet.odds : 0;
       let outcomeStatus: 'win' | 'loss' | 'refund' = isWin ? 'win' : 'loss';
 
@@ -2485,52 +2703,69 @@ export default function SportsBettingGame() {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 flex flex-col gap-6 flex-grow font-sans select-none animate-fade-in">
       
-      {/* Redesigned Premium Glassmorphic Header */}
-      <div className="relative overflow-hidden rounded-3xl border border-luxury-border/60 bg-luxury-surface/20 p-6 md:p-8 backdrop-blur-md shadow-2xl shadow-blue-950/10">
+      {/* Redesigned Premium Glassmorphic Header Carousel */}
+      <div 
+        className="relative overflow-hidden rounded-3xl border border-luxury-border/60 p-6 md:p-8 shadow-2xl transition-all duration-1000 bg-slate-950/70 min-h-[200px] flex flex-col justify-between"
+        style={{
+          backgroundImage: `linear-gradient(to right, rgba(0, 0, 0, 0.85), rgba(0, 0, 0, 0.45)), url('${SLIDER_DATA[activeSlide].image}')`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+        {/* Sliding dot indicators */}
+        <div className="absolute top-4 right-4 flex gap-1.5 z-20">
+          {SLIDER_DATA.map((_, i) => (
+            <button
+              key={i}
+              onClick={() => { setActiveSlide(i); playClick(); }}
+              className={`w-2.5 h-2.5 rounded-full border border-white/20 transition-all cursor-pointer ${
+                activeSlide === i ? 'bg-blue-500 scale-110 shadow-[0_0_8px_#3b82f6]' : 'bg-white/10 hover:bg-white/30'
+              }`}
+            />
+          ))}
+        </div>
+
         {/* Glowing visual assets */}
         <div className="absolute -top-24 -left-20 w-80 h-80 rounded-full bg-blue-500/10 blur-[100px] pointer-events-none" />
-        <div className="absolute -bottom-20 -right-20 w-80 h-80 rounded-full bg-emerald-500/5 blur-[100px] pointer-events-none" />
         
-        <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6">
+        <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-6 z-10">
           <div className="flex flex-col gap-2">
-            <div className="flex items-center justify-between gap-3 flex-wrap">
-              <div className="flex items-center gap-3">
-                <Link 
-                  href="/" 
-                  onClick={playClick}
-                  className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 text-neutral-400 hover:text-white transition-all shadow-inner"
-                  title={TRANSLATIONS[lang].backToLobby}
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                </Link>
-                <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-extrabold rounded-full uppercase tracking-wider">
-                  <Trophy className="w-3.5 h-3.5" />
-                  {TRANSLATIONS[lang].sportsBook}
-                </div>
+            <div className="flex items-center gap-3">
+              <Link 
+                href="/" 
+                onClick={playClick}
+                className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-white/5 border border-white/10 hover:bg-white/10 hover:border-white/20 text-neutral-400 hover:text-white transition-all shadow-inner"
+                title={TRANSLATIONS[lang].backToLobby}
+              >
+                <ArrowLeft className="w-4 h-4" />
+              </Link>
+              <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-500/15 border border-blue-500/35 text-blue-400 text-[10px] font-extrabold rounded-full uppercase tracking-wider font-mono">
+                <Trophy className="w-3.5 h-3.5 animate-bounce" />
+                <span>{SLIDER_DATA[activeSlide].title}</span>
               </div>
             </div>
             
-            <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight mt-2 text-white">
-              {lang === 'vi' ? 'FIFA World Cup' : 'FIFA World Cup'} <span className="gold-gradient-text">{TRANSLATIONS[lang].liveSportsbook}</span>
+            <h1 className="text-xl md:text-2xl font-extrabold tracking-tight mt-2 text-white uppercase drop-shadow">
+              {SLIDER_DATA[activeSlide].subtitle}
             </h1>
-            <p className="text-xs text-neutral-400 max-w-xl font-medium leading-relaxed mt-1">
-              {TRANSLATIONS[lang].titleDescription}
+            <p className="text-[11px] text-neutral-300 max-w-xl font-medium leading-relaxed mt-1 drop-shadow-sm">
+              {SLIDER_DATA[activeSlide].desc}
             </p>
           </div>
 
           {/* Stats pills Dashboard */}
           <div className="flex flex-wrap items-center gap-3 shrink-0">
-            <div className="flex flex-col px-4 py-2 bg-black/40 border border-luxury-border/60 rounded-2xl min-w-[125px] shadow-sm">
+            <div className="flex flex-col px-4 py-2 bg-black/60 border border-luxury-border/60 rounded-2xl min-w-[125px] shadow-sm backdrop-blur-sm">
               <span className="text-[9px] text-neutral-500 font-bold uppercase tracking-wider">{TRANSLATIONS[lang].virtualBalance}</span>
               <span className="text-sm font-black text-blue-400 mt-0.5">${credits.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
             </div>
             
-            <div className="flex flex-col px-4 py-2 bg-black/40 border border-luxury-border/60 rounded-2xl min-w-[100px] shadow-sm">
+            <div className="flex flex-col px-4 py-2 bg-black/60 border border-luxury-border/60 rounded-2xl min-w-[100px] shadow-sm backdrop-blur-sm">
               <span className="text-[9px] text-neutral-500 font-bold uppercase tracking-wider">{TRANSLATIONS[lang].activeBets}</span>
               <span className="text-sm font-black text-emerald-400 mt-0.5">{activeBets.length} {TRANSLATIONS[lang].inPlay}</span>
             </div>
 
-            <div className="flex flex-col px-4 py-2 bg-black/40 border border-luxury-border/60 rounded-2xl min-w-[110px] shadow-sm">
+            <div className="flex flex-col px-4 py-2 bg-black/60 border border-luxury-border/60 rounded-2xl min-w-[110px] shadow-sm backdrop-blur-sm">
               <span className="text-[9px] text-neutral-500 font-bold uppercase tracking-wider">{TRANSLATIONS[lang].netProfit}</span>
               <span className={`text-sm font-black mt-0.5 ${stats.profit >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
                 {stats.profit >= 0 ? '+' : ''}${stats.profit.toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -2541,8 +2776,8 @@ export default function SportsBettingGame() {
 
         {/* Status Line */}
         {clientTime && (
-          <div className="mt-5 pt-4 border-t border-luxury-border/30 flex flex-wrap items-center justify-between gap-3 text-[10px] text-neutral-400 font-bold uppercase tracking-wider">
-            <div className="flex items-center gap-1.5 bg-black/25 px-3 py-1.5 rounded-full border border-luxury-border/25 font-mono font-bold">
+          <div className="mt-5 pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-3 text-[10px] text-neutral-400 font-bold uppercase tracking-wider z-10">
+            <div className="flex items-center gap-1.5 bg-black/55 px-3 py-1.5 rounded-full border border-white/5 font-mono font-bold backdrop-blur-sm">
               <Clock className="w-3.5 h-3.5 text-blue-500 animate-pulse" />
               <span>
                 {TRANSLATIONS[lang].systemLocalTime}: {clientTime.toLocaleDateString(lang === 'vi' ? 'vi-VN' : 'en-US')} {clientTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
@@ -2550,12 +2785,12 @@ export default function SportsBettingGame() {
               </span>
             </div>
             {isLoadingAPI ? (
-              <span className="text-amber-500 animate-pulse flex items-center gap-1">
+              <span className="text-amber-500 animate-pulse flex items-center gap-1 bg-black/30 px-3 py-1 rounded-full border border-amber-500/10">
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
                 {TRANSLATIONS[lang].connectingFeed}
               </span>
             ) : (
-              <span className="text-emerald-500 flex items-center gap-1">
+              <span className="text-emerald-500 flex items-center gap-1 bg-black/30 px-3 py-1 rounded-full border border-emerald-500/10">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 {TRANSLATIONS[lang].feedConnected}
               </span>
@@ -2821,7 +3056,7 @@ export default function SportsBettingGame() {
                                 {timeLines[1] && <span className="text-white font-mono mt-0.5">{timeLines[1]}</span>}
                               </div>
                               
-                              <MatchStoryThumbnail home={home} away={away} isFirst={idx === 0 && groupIdx === 0} teamsList={teamsList} />
+                              <MatchStoryThumbnail matchId={match.id} />
                             </div>
                           </div>
                         );
@@ -2872,9 +3107,28 @@ export default function SportsBettingGame() {
 
                   const homeLabel = lang === 'vi' ? (TEAM_TRANSLATIONS[bet.homeTeam.name_en] || bet.homeTeam.name_en) : bet.homeTeam.name_en;
                   const awayLabel = lang === 'vi' ? (TEAM_TRANSLATIONS[bet.awayTeam.name_en] || bet.awayTeam.name_en) : bet.awayTeam.name_en;
-                  const predLabel = bet.prediction === 'home' ? homeLabel
-                    : bet.prediction === 'away' ? awayLabel
-                    : TRANSLATIONS[lang].draw;
+                  
+                  let predLabel = '';
+                  if (bet.betType === 'correct_score_2h') {
+                    predLabel = lang === 'vi' ? `Hiệp 2: ${bet.prediction}` : `2nd Half: ${bet.prediction}`;
+                  } else if (bet.betType === 'red_card') {
+                    predLabel = bet.prediction === 'yes' 
+                      ? (lang === 'vi' ? 'Có thẻ đỏ' : 'Red Card Yes') 
+                      : (lang === 'vi' ? 'Không thẻ đỏ' : 'Red Card No');
+                  } else {
+                    predLabel = bet.prediction === 'home' ? homeLabel
+                      : bet.prediction === 'away' ? awayLabel
+                      : TRANSLATIONS[lang].draw;
+                  }
+
+                  const liveHomeScore = parseInt(bet.match.home_score) || 0;
+                  const liveAwayScore = parseInt(bet.match.away_score) || 0;
+                  const isEarlyCashoutEligible = bet.betType === 'early_cashout' && isLive && (
+                    (bet.prediction === 'home' && liveHomeScore - liveAwayScore >= 2) ||
+                    (bet.prediction === 'away' && liveAwayScore - liveHomeScore >= 2)
+                  );
+
+                  const canSettle = hasEnded || isEarlyCashoutEligible;
 
                   return (
                     <div 
@@ -2892,6 +3146,12 @@ export default function SportsBettingGame() {
                               <span className={`font-mono font-bold ${isLive ? 'text-amber-400' : 'text-neutral-400'}`}>{timeLabel}</span>
                             </>
                           )}
+                          {isLive && (
+                            <>
+                              <span className="text-neutral-700">•</span>
+                              <span className="text-amber-450 font-black animate-pulse">({liveHomeScore} - {liveAwayScore})</span>
+                            </>
+                          )}
                         </div>
                         
                         <div className="text-xs font-black text-white flex items-center gap-2">
@@ -2907,26 +3167,36 @@ export default function SportsBettingGame() {
                           <span className="text-[9px] bg-blue-950/40 border border-blue-500/20 text-blue-400 font-black px-2.5 py-0.5 rounded-full uppercase">
                             {TRANSLATIONS[lang].betLabel}: {predLabel} ({bet.odds}x)
                           </span>
+                          {bet.betType && (
+                            <span className="text-[9px] bg-indigo-950/40 border border-indigo-500/20 text-indigo-405 text-indigo-400 font-black px-2.5 py-0.5 rounded-full uppercase">
+                              {bet.betType === 'early_cashout' ? 'Early Cashout' : bet.betType === 'red_card' ? 'Red Card' : bet.betType === 'correct_score_2h' ? '2H Score' : '1X2'}
+                            </span>
+                          )}
                         </div>
                       </div>
 
                       {/* Settle Action Button */}
                       <div className="shrink-0 flex items-center font-sans">
                         <Button
-                          variant={hasEnded ? 'gold' : 'dark'}
+                          variant={canSettle ? 'gold' : 'dark'}
                           size="sm"
                           onClick={() => handleSettleBet(bet)}
-                          disabled={!hasEnded}
+                          disabled={!canSettle}
                           className={`font-extrabold text-[10px] px-5 py-2.5 rounded-full transition-all ${
-                            hasEnded 
+                            isEarlyCashoutEligible
+                              ? 'bg-gradient-to-r from-emerald-500 to-green-600 border-none hover:from-emerald-400 hover:to-green-500 text-white hover:scale-105 shadow-md shadow-emerald-950/40 animate-pulse'
+                              : hasEnded 
                               ? 'bg-gradient-to-r from-blue-600 to-indigo-700 border-none hover:from-blue-500 hover:to-indigo-600 text-white hover:scale-105 shadow-md shadow-blue-950/30' 
                               : 'opacity-55'
                           }`}
                         >
-                          {hasEnded ? TRANSLATIONS[lang].settleBetBtn : TRANSLATIONS[lang].awaitingConclusion}
+                          {isEarlyCashoutEligible 
+                            ? (lang === 'vi' ? 'Nhận Tiền Sớm 💰' : 'Early Cashout 💰')
+                            : hasEnded 
+                            ? TRANSLATIONS[lang].settleBetBtn 
+                            : TRANSLATIONS[lang].awaitingConclusion}
                         </Button>
                       </div>
-
                     </div>
                   );
                 })
@@ -3010,43 +3280,184 @@ export default function SportsBettingGame() {
                       </span>
                     </div>
 
-                    {/* Outcome Selectors */}
+                    {/* Bet Type Selection Bar */}
                     <div className="flex flex-col gap-2">
-                      <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wide">{TRANSLATIONS[lang].predictResult}</span>
-                      <div className="grid grid-cols-3 gap-2">
-                        <button
-                          onClick={() => { setSelectedOutcome('home'); playClick(); }}
-                          className={`py-2 px-1 rounded-full border text-center text-[10px] font-black transition-all truncate w-full cursor-pointer ${
-                            selectedOutcome === 'home'
-                              ? 'bg-blue-950/20 border-blue-500 text-blue-400'
-                              : 'bg-black/40 border-luxury-border text-neutral-400 hover:text-white'
-                          }`}
-                          title={homeLabel}
-                        >
-                          {homeLabel} ({oddsHome}x)
-                        </button>
-                        <button
-                          onClick={() => { setSelectedOutcome('draw'); playClick(); }}
-                          className={`py-2 px-1 rounded-full border text-center text-[10px] font-black transition-all cursor-pointer ${
-                            selectedOutcome === 'draw'
-                              ? 'bg-blue-950/20 border-blue-500 text-blue-400'
-                              : 'bg-black/40 border-luxury-border text-neutral-400 hover:text-white'
-                          }`}
-                        >
-                          {TRANSLATIONS[lang].draw} ({oddsDraw}x)
-                        </button>
-                        <button
-                          onClick={() => { setSelectedOutcome('away'); playClick(); }}
-                          className={`py-2 px-1 rounded-full border text-center text-[10px] font-black transition-all truncate w-full cursor-pointer ${
-                            selectedOutcome === 'away'
-                              ? 'bg-blue-950/20 border-blue-500 text-blue-400'
-                              : 'bg-black/40 border-luxury-border text-neutral-400 hover:text-white'
-                          }`}
-                          title={awayLabel}
-                        >
-                          {awayLabel} ({oddsAway}x)
-                        </button>
+                      <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wide">
+                        {lang === 'vi' ? 'Loại cược' : 'Bet Type'}
+                      </span>
+                      <div className="grid grid-cols-4 gap-1 bg-black/40 border border-luxury-border/60 p-1 rounded-full overflow-hidden">
+                        {(['1x2', 'early_cashout', 'red_card', 'correct_score_2h'] as const).map((t) => {
+                          const active = betType === t;
+                          const label = t === '1x2' ? '1X2'
+                            : t === 'early_cashout' ? (lang === 'vi' ? '2-0 Win' : '2-0 Win')
+                            : t === 'red_card' ? (lang === 'vi' ? 'Thẻ đỏ' : 'Red Card')
+                            : (lang === 'vi' ? 'Tỉ số H2' : '2H Score');
+                          return (
+                            <button
+                              key={t}
+                              onClick={() => { setBetType(t); setSelectedOutcome(null); playClick(); }}
+                              className={`py-1.5 px-0.5 rounded-full text-center text-[8px] font-black transition-all cursor-pointer truncate ${
+                                active
+                                  ? 'bg-blue-600 text-white animate-fade-in'
+                                  : 'text-neutral-400 hover:text-white hover:bg-neutral-900/40'
+                              }`}
+                            >
+                              {label}
+                            </button>
+                          );
+                        })}
                       </div>
+                    </div>
+
+                    {/* Outcome Selectors depending on Bet Type */}
+                    <div className="flex flex-col gap-2">
+                      <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wide">
+                        {betType === 'correct_score_2h' 
+                          ? (lang === 'vi' ? 'Dự đoán tỉ số hiệp 2' : 'Predict 2nd half score')
+                          : TRANSLATIONS[lang].predictResult}
+                      </span>
+                      
+                      {betType === '1x2' && (
+                        <div className="grid grid-cols-3 gap-2">
+                          <button
+                            onClick={() => { setSelectedOutcome('home'); playClick(); }}
+                            className={`py-2 px-1 rounded-full border text-center text-[10px] font-black transition-all truncate w-full cursor-pointer ${
+                              selectedOutcome === 'home'
+                                ? 'bg-blue-950/20 border-blue-500 text-blue-400 font-bold shadow-[0_0_10px_rgba(59,130,246,0.2)]'
+                                : 'bg-black/40 border-luxury-border text-neutral-400 hover:text-white'
+                            }`}
+                            title={homeLabel}
+                          >
+                            {homeLabel} ({oddsHome}x)
+                          </button>
+                          <button
+                            onClick={() => { setSelectedOutcome('draw'); playClick(); }}
+                            className={`py-2 px-1 rounded-full border text-center text-[10px] font-black transition-all cursor-pointer ${
+                              selectedOutcome === 'draw'
+                                ? 'bg-blue-950/20 border-blue-500 text-blue-400 font-bold shadow-[0_0_10px_rgba(59,130,246,0.2)]'
+                                : 'bg-black/40 border-luxury-border text-neutral-400 hover:text-white'
+                            }`}
+                          >
+                            {TRANSLATIONS[lang].draw} ({oddsDraw}x)
+                          </button>
+                          <button
+                            onClick={() => { setSelectedOutcome('away'); playClick(); }}
+                            className={`py-2 px-1 rounded-full border text-center text-[10px] font-black transition-all truncate w-full cursor-pointer ${
+                              selectedOutcome === 'away'
+                                ? 'bg-blue-950/20 border-blue-500 text-blue-400 font-bold shadow-[0_0_10px_rgba(59,130,246,0.2)]'
+                                : 'bg-black/40 border-luxury-border text-neutral-400 hover:text-white'
+                            }`}
+                            title={awayLabel}
+                          >
+                            {awayLabel} ({oddsAway}x)
+                          </button>
+                        </div>
+                      )}
+
+                      {betType === 'early_cashout' && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={() => { setSelectedOutcome('home'); playClick(); }}
+                            className={`py-2.5 px-1 rounded-full border text-center text-[10px] font-black transition-all truncate w-full cursor-pointer ${
+                              selectedOutcome === 'home'
+                                ? 'bg-blue-950/20 border-blue-500 text-blue-400 font-bold'
+                                : 'bg-black/40 border-luxury-border text-neutral-400 hover:text-white'
+                            }`}
+                            title={homeLabel}
+                          >
+                            {homeLabel} ({Math.max(1.05, Math.round(oddsHome * 0.9 * 100) / 100)}x)
+                          </button>
+                          <button
+                            onClick={() => { setSelectedOutcome('away'); playClick(); }}
+                            className={`py-2.5 px-1 rounded-full border text-center text-[10px] font-black transition-all truncate w-full cursor-pointer ${
+                              selectedOutcome === 'away'
+                                ? 'bg-blue-950/20 border-blue-500 text-blue-400 font-bold'
+                                : 'bg-black/40 border-luxury-border text-neutral-400 hover:text-white'
+                            }`}
+                            title={awayLabel}
+                          >
+                            {awayLabel} ({Math.max(1.05, Math.round(oddsAway * 0.9 * 100) / 100)}x)
+                          </button>
+                        </div>
+                      )}
+
+                      {betType === 'red_card' && (
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            onClick={() => { setSelectedOutcome('yes'); playClick(); }}
+                            className={`py-2.5 px-1 rounded-full border text-center text-[10px] font-black transition-all cursor-pointer ${
+                              selectedOutcome === 'yes'
+                                ? 'bg-blue-950/20 border-blue-500 text-blue-400 font-bold'
+                                : 'bg-black/40 border-luxury-border text-neutral-400 hover:text-white'
+                            }`}
+                          >
+                            {lang === 'vi' ? 'Có' : 'Yes'} (3.50x)
+                          </button>
+                          <button
+                            onClick={() => { setSelectedOutcome('no'); playClick(); }}
+                            className={`py-2.5 px-1 rounded-full border text-center text-[10px] font-black transition-all cursor-pointer ${
+                              selectedOutcome === 'no'
+                                ? 'bg-blue-950/20 border-blue-500 text-blue-400 font-bold'
+                                : 'bg-black/40 border-luxury-border text-neutral-400 hover:text-white'
+                            }`}
+                          >
+                            {lang === 'vi' ? 'Không' : 'No'} (1.25x)
+                          </button>
+                        </div>
+                      )}
+
+                      {betType === 'correct_score_2h' && (
+                        <div className="flex flex-col gap-3 bg-black/40 border border-luxury-border/60 p-4.5 rounded-2xl">
+                          <div className="flex items-center justify-between gap-4">
+                            <span className="text-[11px] font-bold text-neutral-300 truncate max-w-[120px]">{homeLabelRaw}:</span>
+                            <div className="flex items-center gap-1.5">
+                              <button 
+                                onClick={() => { setGuessHomeScore(p => Math.max(0, p - 1)); playClick(); }} 
+                                className="w-6 h-6 rounded-full bg-neutral-900 border border-neutral-800 text-white font-bold flex items-center justify-center hover:bg-neutral-800 cursor-pointer"
+                              >-</button>
+                              <input
+                                type="number"
+                                min="0"
+                                max="20"
+                                value={guessHomeScore}
+                                onChange={(e) => setGuessHomeScore(Math.max(0, parseInt(e.target.value) || 0))}
+                                className="w-12 bg-neutral-950 border border-luxury-border/80 text-center rounded text-xs font-black text-white py-1 focus:outline-none"
+                              />
+                              <button 
+                                onClick={() => { setGuessHomeScore(p => p + 1); playClick(); }} 
+                                className="w-6 h-6 rounded-full bg-neutral-900 border border-neutral-800 text-white font-bold flex items-center justify-center hover:bg-neutral-800 cursor-pointer"
+                              >+</button>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center justify-between gap-4">
+                            <span className="text-[11px] font-bold text-neutral-300 truncate max-w-[120px]">{awayLabelRaw}:</span>
+                            <div className="flex items-center gap-1.5">
+                              <button 
+                                onClick={() => { setGuessAwayScore(p => Math.max(0, p - 1)); playClick(); }} 
+                                className="w-6 h-6 rounded-full bg-neutral-900 border border-neutral-800 text-white font-bold flex items-center justify-center hover:bg-neutral-800 cursor-pointer"
+                              >-</button>
+                              <input
+                                type="number"
+                                min="0"
+                                max="20"
+                                value={guessAwayScore}
+                                onChange={(e) => setGuessAwayScore(Math.max(0, parseInt(e.target.value) || 0))}
+                                className="w-12 bg-neutral-950 border border-luxury-border/80 text-center rounded text-xs font-black text-white py-1 focus:outline-none"
+                              />
+                              <button 
+                                onClick={() => { setGuessAwayScore(p => p + 1); playClick(); }} 
+                                className="w-6 h-6 rounded-full bg-neutral-900 border border-neutral-800 text-white font-bold flex items-center justify-center hover:bg-neutral-800 cursor-pointer"
+                              >+</button>
+                            </div>
+                          </div>
+
+                          <div className="mt-2 pt-2.5 border-t border-luxury-border/30 flex justify-between items-center text-xs font-bold">
+                            <span className="text-neutral-500 uppercase text-[9px] tracking-wider">{lang === 'vi' ? 'Tỉ lệ cược:' : 'Odds multiplier:'}</span>
+                            <span className="text-blue-400 font-extrabold font-mono text-sm">{calculateCorrectScoreOdds(guessHomeScore, guessAwayScore)}x</span>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Stake input */}
@@ -3093,7 +3504,7 @@ export default function SportsBettingGame() {
                       variant="gold"
                       fullWidth
                       onClick={handlePlaceBet}
-                      disabled={!selectedOutcome || betAmount > credits}
+                      disabled={((betType !== 'correct_score_2h' && !selectedOutcome) || betAmount > credits)}
                       className="font-extrabold uppercase tracking-wider text-xs py-3 rounded-full bg-gradient-to-r from-blue-600 to-indigo-700 border-none hover:from-blue-500 hover:to-indigo-600 text-white disabled:opacity-50"
                     >
                       {TRANSLATIONS[lang].placeBet} (${betAmount.toLocaleString()})
