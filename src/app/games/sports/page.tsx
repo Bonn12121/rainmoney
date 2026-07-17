@@ -6,7 +6,7 @@ import { useAudio } from '@/hooks/useAudio';
 import { triggerWinConfetti } from '@/utils/confetti';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { ArrowLeft, ShieldAlert, Trophy, Clock, Search, AlertCircle, Sparkles, X, Activity, Play, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, ShieldAlert, Trophy, Clock, Search, AlertCircle, Sparkles, X, Activity, Play, CheckCircle2, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 
 // Import JSON files directly as fallback datasets
@@ -293,21 +293,33 @@ const SLIDER_DATA = [
     badge: 'WORLD CUP 2026',
     titleHighlight: '100% PROFIT BOOST',
     titleRest: 'ON HIGH-STAKES FIXTURES',
-    desc: 'Double your payout on high-odds underdogs and high stakes matches ($1,000+). Settle bets instantly based on live tournament scoreboards.'
+    desc: 'Double your payout on high-odds underdogs and high stakes matches ($1,000+). Settle bets instantly based on live tournament scoreboards.',
+    gradient: 'linear-gradient(to right, rgba(25, 15, 0, 0.95) 20%, rgba(180, 120, 30, 0.3) 65%, rgba(0, 0, 0, 0.2))',
+    badgeBg: 'from-amber-600 to-yellow-500',
+    titleColor: 'text-yellow-400',
+    indicatorColor: 'bg-amber-500 scale-110 shadow-[0_0_8px_#f59e0b]'
   },
   {
     image: 'https://images.pexels.com/photos/38273820/pexels-photo-38273820.jpeg',
     badge: 'EARLY CASHOUT INSURANCE',
     titleHighlight: '2-0 LEAD WINS',
     titleRest: 'AUTOMATIC PAYOUT AT ANY MINUTE',
-    desc: 'Back your favorite team to win. If they lead by 2 goals at any time during a live match, cash out immediately for a guaranteed full payout!'
+    desc: 'Back your favorite team to win. If they lead by 2 goals at any time during a live match, cash out immediately for a guaranteed full payout!',
+    gradient: 'linear-gradient(to right, rgba(0, 20, 40, 0.95) 20%, rgba(0, 120, 180, 0.3) 65%, rgba(0, 0, 0, 0.2))',
+    badgeBg: 'from-blue-600 to-cyan-500',
+    titleColor: 'text-cyan-400',
+    indicatorColor: 'bg-cyan-500 scale-110 shadow-[0_0_8px_#06b6d4]'
   },
   {
     image: 'https://images.pexels.com/photos/38401511/pexels-photo-38401511.jpeg',
     badge: 'GUESS THE SECOND HALF',
     titleHighlight: 'UP TO 150x ODDS',
     titleRest: 'ON CORRECT SCORE PREDICTION',
-    desc: 'Step up to the challenge: type in your predicted 2nd half score directly. Highly improbable scorelines yield massive multipliers!'
+    desc: 'Step up to the challenge: type in your predicted 2nd half score directly. Highly improbable scorelines yield massive multipliers!',
+    gradient: 'linear-gradient(to right, rgba(20, 0, 35, 0.95) 20%, rgba(140, 30, 180, 0.3) 65%, rgba(0, 0, 0, 0.2))',
+    badgeBg: 'from-purple-600 to-fuchsia-500',
+    titleColor: 'text-fuchsia-400',
+    indicatorColor: 'bg-fuchsia-500 scale-110 shadow-[0_0_8px_#d946ef]'
   }
 ];
 
@@ -561,19 +573,7 @@ const parseMatchDate = (dateStr: string, stadiumId?: string): Date => {
   }
 };
 
-interface SportsEvent {
-  id: string;
-  titleEn: string;
-  titleVi: string;
-  descEn: string;
-  descVi: string;
-  badgeEn: string;
-  badgeVi: string;
-  icon: string;
-  color: string;
-  check: (bet: Bet, finalGame: RawMatch, isWin: boolean, homeScore: number, awayScore: number) => boolean;
-  multiplier: number;
-}
+
 
 const overrideWorldCupMatches = (matches: RawMatch[]): RawMatch[] => {
   return matches.map(match => {
@@ -603,169 +603,6 @@ const overrideWorldCupMatches = (matches: RawMatch[]): RawMatch[] => {
   });
 };
 
-const SPORTS_EVENTS: SportsEvent[] = [
-  {
-    id: 'underdog_triumph',
-    titleEn: 'Underdog Triumph',
-    titleVi: 'Thắng Cửa Dưới',
-    descEn: 'Double your payout if you win a bet with odds of 3.0x or higher.',
-    descVi: 'Nhân đôi tiền thưởng nếu thắng cược với tỷ lệ cược từ 3.0x trở lên.',
-    badgeEn: '2x Payout',
-    badgeVi: 'Thưởng 2.0x',
-    icon: '🔥',
-    color: 'from-amber-600 to-orange-500 border-orange-500/30 text-orange-400',
-    check: (bet: Bet, finalGame: RawMatch, isWin: boolean, homeScore: number, awayScore: number) => {
-      return isWin && bet.odds >= 3.0;
-    },
-    multiplier: 2.0
-  },
-  {
-    id: 'clean_sheet',
-    titleEn: 'Clean Sheet Master',
-    titleVi: 'Bậc Thầy Giữ Sạch Lưới',
-    descEn: 'Get a 1.25x payout booster if your winning team keeps a clean sheet (concedes 0 goals).',
-    descVi: 'Tăng 1.25x tiền thưởng nếu đội bạn cược thắng và giữ sạch lưới (đối thủ ghi 0 bàn).',
-    badgeEn: '1.25x Payout',
-    badgeVi: 'Thưởng 1.25x',
-    icon: '🛡️',
-    color: 'from-blue-600 to-cyan-500 border-cyan-500/30 text-cyan-400',
-    check: (bet: Bet, finalGame: RawMatch, isWin: boolean, homeScore: number, awayScore: number) => {
-      if (!isWin) return false;
-      if (bet.prediction === 'home') return awayScore === 0;
-      if (bet.prediction === 'away') return homeScore === 0;
-      return false;
-    },
-    multiplier: 1.25
-  },
-  {
-    id: 'penalty_shootout',
-    titleEn: 'Shootout Drama',
-    titleVi: 'Đấu Súng Cân Não',
-    descEn: 'Get 1.5x payout if the match is decided in a penalty shootout.',
-    descVi: 'Tăng 1.5x tiền thưởng nếu trận đấu phải quyết định bằng loạt sút luân lưu.',
-    badgeEn: '1.5x Payout',
-    badgeVi: 'Thưởng 1.5x',
-    icon: '⚽',
-    color: 'from-red-600 to-rose-500 border-rose-500/30 text-rose-400',
-    check: (bet: Bet, finalGame: RawMatch, isWin: boolean, homeScore: number, awayScore: number) => {
-      const pHome = finalGame.home_penalty_score !== undefined && finalGame.home_penalty_score !== null ? Number(finalGame.home_penalty_score) : NaN;
-      const pAway = finalGame.away_penalty_score !== undefined && finalGame.away_penalty_score !== null ? Number(finalGame.away_penalty_score) : NaN;
-      return isWin && !isNaN(pHome) && !isNaN(pAway);
-    },
-    multiplier: 1.5
-  },
-  {
-    id: 'final_fest',
-    titleEn: 'Final Goal Fest',
-    titleVi: 'Chung Kết Rực Lửa',
-    descEn: 'Double your payout if you bet on the Final match (Match 104) and total goals in regular time are 3 or more.',
-    descVi: 'Nhân đôi tiền thưởng nếu đặt cược trận Chung kết (Trận 104) và tổng số bàn thắng từ 3 trở lên.',
-    badgeEn: '2.0x Payout',
-    badgeVi: 'Thưởng 2.0x',
-    icon: '🏆',
-    color: 'from-yellow-500 to-amber-500 border-yellow-500/30 text-yellow-400',
-    check: (bet: Bet, finalGame: RawMatch, isWin: boolean, homeScore: number, awayScore: number) => {
-      return isWin && finalGame.id === '104' && (homeScore + awayScore >= 3);
-    },
-    multiplier: 2.0
-  },
-  {
-    id: 'euro_latino',
-    titleEn: 'Euro-Latino Clash',
-    titleVi: 'Đại Chiến Âu - Mỹ',
-    descEn: 'Get a 1.5x payout boost for Spain vs Argentina (Final) if both teams score in regular time.',
-    descVi: 'Tăng 1.5x tiền thưởng cho trận Tây Ban Nha vs Argentina (Chung kết) nếu cả hai đội đều ghi bàn.',
-    badgeEn: '1.5x Payout',
-    badgeVi: 'Thưởng 1.5x',
-    icon: '🌎',
-    color: 'from-violet-600 to-indigo-500 border-indigo-500/30 text-indigo-400',
-    check: (bet: Bet, finalGame: RawMatch, isWin: boolean, homeScore: number, awayScore: number) => {
-      return isWin && finalGame.id === '104' && homeScore > 0 && awayScore > 0;
-    },
-    multiplier: 1.5
-  },
-  {
-    id: 'draw_insurance',
-    titleEn: 'Draw Insurance',
-    titleVi: 'Bảo Hiểm Hòa',
-    descEn: 'Refund 50% of your stake if you bet on a team to win but the match ends in a Draw (90 mins).',
-    descVi: 'Hoàn lại 50% tiền cược nếu bạn đặt cược một đội thắng nhưng trận đấu kết thúc với kết quả Hòa.',
-    badgeEn: '50% Refund',
-    badgeVi: 'Hoàn 50%',
-    icon: '🛡️',
-    color: 'from-teal-600 to-emerald-500 border-emerald-500/30 text-emerald-400',
-    check: (bet: Bet, finalGame: RawMatch, isWin: boolean, homeScore: number, awayScore: number) => {
-      return !isWin && bet.prediction !== 'draw' && homeScore === awayScore;
-    },
-    multiplier: 0.5
-  },
-  {
-    id: 'goal_fest',
-    titleEn: 'Goal Fest',
-    titleVi: 'Đại Tiệc Bàn Thắng',
-    descEn: 'Get 1.3x payout if the total score of the match is 4 or more goals.',
-    descVi: 'Tăng 1.3x tiền thưởng nếu tổng số bàn thắng của trận đấu từ 4 bàn trở lên.',
-    badgeEn: '1.3x Payout',
-    badgeVi: 'Thưởng 1.3x',
-    icon: '⚡',
-    color: 'from-fuchsia-600 to-pink-500 border-pink-500/30 text-pink-400',
-    check: (bet: Bet, finalGame: RawMatch, isWin: boolean, homeScore: number, awayScore: number) => {
-      return isWin && (homeScore + awayScore >= 4);
-    },
-    multiplier: 1.3
-  },
-  {
-    id: 'weekend_booster',
-    titleEn: 'Weekend Booster',
-    titleVi: 'Cuối Tuần Bùng Nổ',
-    descEn: 'Get 1.15x payout if the bet was placed on Saturday or Sunday.',
-    descVi: 'Tăng 1.15x tiền thưởng nếu cược được đặt vào thứ Bảy hoặc Chủ Nhật.',
-    badgeEn: '1.15x Payout',
-    badgeVi: 'Thưởng 1.15x',
-    icon: '🎉',
-    color: 'from-purple-600 to-fuchsia-500 border-fuchsia-500/30 text-fuchsia-400',
-    check: (bet: Bet, finalGame: RawMatch, isWin: boolean, homeScore: number, awayScore: number) => {
-      if (!isWin) return false;
-      const betDate = new Date(bet.timestamp);
-      const day = betDate.getDay();
-      return day === 0 || day === 6;
-    },
-    multiplier: 1.15
-  },
-  {
-    id: 'perfect_margin',
-    titleEn: 'Perfect Prediction',
-    titleVi: 'Dự Đoán Hoàn Hảo',
-    descEn: 'Get 1.25x payout if your team wins by a margin of 2 or more goals.',
-    descVi: 'Tăng 1.25x tiền thưởng nếu đội bạn cược thắng cách biệt từ 2 bàn trở lên.',
-    badgeEn: '1.25x Payout',
-    badgeVi: 'Thưởng 1.25x',
-    icon: '🎯',
-    color: 'from-lime-600 to-green-500 border-green-500/30 text-green-400',
-    check: (bet: Bet, finalGame: RawMatch, isWin: boolean, homeScore: number, awayScore: number) => {
-      if (!isWin) return false;
-      if (bet.prediction === 'home') return (homeScore - awayScore) >= 2;
-      if (bet.prediction === 'away') return (awayScore - homeScore) >= 2;
-      return false;
-    },
-    multiplier: 1.25
-  },
-  {
-    id: 'high_stakes_elite',
-    titleEn: 'High Stakes Elite',
-    titleVi: 'Đại Gia Thể Thao',
-    descEn: 'Get 1.1x payout boost if your bet amount is $1,000 or more.',
-    descVi: 'Tăng 1.1x tiền thưởng nếu số tiền đặt cược từ $1,000 trở lên.',
-    badgeEn: '1.1x Payout',
-    badgeVi: 'Thưởng 1.1x',
-    icon: '💎',
-    color: 'from-sky-600 to-blue-500 border-sky-500/30 text-sky-400',
-    check: (bet: Bet, finalGame: RawMatch, isWin: boolean, homeScore: number, awayScore: number) => {
-      return isWin && bet.amount >= 1000;
-    },
-    multiplier: 1.1
-  }
-];
 
 // Helper to parse scorers string format like {"Nestory Irankunda 27'","C. Metcalfe 75'"}
 const parseScorers = (scorersStr?: string): string[] => {
@@ -2730,32 +2567,8 @@ export default function SportsBettingGame() {
         isWin = bet.prediction === finalOutcome;
       }
 
-      let payout = isWin ? bet.amount * bet.odds : 0;
-      let outcomeStatus: 'win' | 'loss' | 'refund' = isWin ? 'win' : 'loss';
-
-      // Check triggered events
-      const triggered = SPORTS_EVENTS.filter(evt => evt.check(bet, finalGame, isWin, homeScore, awayScore));
-      const triggeredIds = triggered.map(evt => evt.id);
-
-      let boostMultiplier = 1.0;
-      let refundApplied = false;
-      let refundAmount = 0;
-
-      triggered.forEach(evt => {
-        if (evt.id === 'draw_insurance') {
-          refundApplied = true;
-          refundAmount = bet.amount * 0.5;
-        } else {
-          boostMultiplier *= evt.multiplier;
-        }
-      });
-
-      if (isWin) {
-        payout = Math.round(payout * boostMultiplier * 100) / 100;
-      } else if (refundApplied) {
-        payout = Math.round(refundAmount * 100) / 100;
-        outcomeStatus = 'refund';
-      }
+      let payout = isWin ? Math.round(bet.amount * bet.odds * 100) / 100 : 0;
+      const outcomeStatus: 'win' | 'loss' = isWin ? 'win' : 'loss';
 
       const historyGameLabel = lang === 'vi' ? 'Cá cược Thể thao' : 'Sports Betting';
 
@@ -2763,22 +2576,12 @@ export default function SportsBettingGame() {
         addCredits(payout);
         playWin();
         triggerWinConfetti();
-        addHistoryItem(historyGameLabel, bet.amount, Math.round(bet.odds * boostMultiplier * 100) / 100, payout, 'win');
+        addHistoryItem(historyGameLabel, bet.amount, bet.odds, payout, 'win');
         setStats(curr => ({
           totalBets: curr.totalBets + 1,
           wins: curr.wins + 1,
           losses: curr.losses,
           profit: curr.profit + (payout - bet.amount)
-        }));
-      } else if (refundApplied) {
-        addCredits(payout);
-        playWin();
-        addHistoryItem(historyGameLabel, bet.amount, 0.5, payout, 'refund' as any);
-        setStats(curr => ({
-          totalBets: curr.totalBets + 1,
-          wins: curr.wins,
-          losses: curr.losses,
-          profit: curr.profit - (bet.amount - payout)
         }));
       } else {
         playLoss();
@@ -2799,14 +2602,13 @@ export default function SportsBettingGame() {
         prediction: bet.prediction,
         amount: bet.amount,
         payout,
-        odds: isWin ? Math.round(bet.odds * boostMultiplier * 100) / 100 : bet.odds,
+        odds: bet.odds,
         homeScore,
         awayScore,
         outcome: outcomeStatus,
         timestamp: Date.now(),
         homeScorers: homeScorersList,
-        awayScorers: awayScorersList,
-        triggeredEvents: triggeredIds
+        awayScorers: awayScorersList
       };
 
       setSettleOutcome(resolved);
@@ -2884,7 +2686,7 @@ export default function SportsBettingGame() {
             hoveringBanner ? 'opacity-100 scale-100' : 'opacity-0 scale-90 pointer-events-none'
           }`}
         >
-          <span className="text-sm font-extrabold">&larr;</span>
+          <ChevronLeft className="w-5 h-5" />
         </button>
         <button
           onClick={(e) => {
@@ -2896,17 +2698,17 @@ export default function SportsBettingGame() {
             hoveringBanner ? 'opacity-100 scale-100' : 'opacity-0 scale-90 pointer-events-none'
           }`}
         >
-          <span className="text-sm font-extrabold">&rarr;</span>
+          <ChevronRight className="w-5 h-5" />
         </button>
 
         {/* Sliding dot indicators */}
         <div className="absolute top-4 right-4 flex gap-1.5 z-30">
-          {SLIDER_DATA.map((_, i) => (
+          {SLIDER_DATA.map((slide, i) => (
             <button
               key={i}
               onClick={() => { setActiveSlide(i); playClick(); }}
               className={`w-2.5 h-2.5 rounded-full border border-white/20 transition-all cursor-pointer ${
-                activeSlide === i ? 'bg-amber-500 scale-110 shadow-[0_0_8px_#f59e0b]' : 'bg-white/10 hover:bg-white/30'
+                activeSlide === i ? slide.indicatorColor : 'bg-white/10 hover:bg-white/30'
               }`}
             />
           ))}
@@ -2922,7 +2724,7 @@ export default function SportsBettingGame() {
               key={idx}
               className="w-full shrink-0 flex flex-col justify-between p-6 md:p-8 min-h-[220px] relative overflow-hidden"
               style={{
-                backgroundImage: `linear-gradient(to right, rgba(0, 0, 0, 0.9) 25%, rgba(0, 0, 0, 0.7) 50%, rgba(0, 0, 0, 0.25)), url('${slide.image}')`,
+                backgroundImage: `${slide.gradient}, url('${slide.image}')`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
               }}
@@ -2945,14 +2747,14 @@ export default function SportsBettingGame() {
                   >
                     <ArrowLeft className="w-4 h-4" />
                   </Link>
-                  <div className="inline-block px-3 py-1 bg-gradient-to-r from-red-600 to-amber-600 text-white text-[9px] font-black uppercase tracking-wider skew-x-12 rounded shadow">
+                  <div className={`inline-block px-3 py-1 bg-gradient-to-r ${slide.badgeBg} text-white text-[9px] font-black uppercase tracking-wider skew-x-12 rounded shadow`}>
                     <span className="inline-block -skew-x-12">{slide.badge}</span>
                   </div>
                 </div>
                 
                 {/* Heavy Sporty font header with multi-color highlights */}
                 <h1 className="text-3xl md:text-4xl font-extrabold tracking-tighter mt-2 text-white italic uppercase leading-none select-none" style={{ fontFamily: "'Teko', sans-serif" }}>
-                  <span className="text-yellow-400 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] mr-2">{slide.titleHighlight}</span>
+                  <span className={`${slide.titleColor} drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] mr-2`}>{slide.titleHighlight}</span>
                   <span className="text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">{slide.titleRest}</span>
                 </h1>
                 <p className="text-[11px] text-neutral-300 max-w-lg font-medium leading-relaxed mt-1 drop-shadow-sm select-none">
@@ -2963,86 +2765,6 @@ export default function SportsBettingGame() {
           ))}
         </div>
 
-        {/* Status Line */}
-        {clientTime && (
-          <div className="mx-6 mb-5 pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-3 text-[10px] text-neutral-450 font-bold uppercase tracking-wider z-10">
-            <div className="flex items-center gap-1.5 bg-black/55 px-3 py-1.5 rounded-full border border-white/5 font-mono font-bold backdrop-blur-sm">
-              <Clock className="w-3.5 h-3.5 text-blue-500 animate-pulse" />
-              <span>
-                {TRANSLATIONS[lang].systemLocalTime}: {clientTime.toLocaleDateString(lang === 'vi' ? 'vi-VN' : 'en-US')} {clientTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
-                {userTimezone && <span className="ml-2 text-blue-400 text-[9px] bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-full font-sans uppercase font-extrabold">{userTimezone}</span>}
-              </span>
-            </div>
-            {isLoadingAPI ? (
-              <span className="text-amber-500 animate-pulse flex items-center gap-1 bg-black/30 px-3 py-1 rounded-full border border-amber-500/10">
-                <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-ping" />
-                {TRANSLATIONS[lang].connectingFeed}
-              </span>
-            ) : (
-              <span className="text-emerald-500 flex items-center gap-1 bg-black/30 px-3 py-1 rounded-full border border-emerald-500/10">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                {TRANSLATIONS[lang].feedConnected}
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* Premium Special Promotion Events & Boosts Panel */}
-      <div className="flex flex-col gap-3">
-        <div className="flex items-center gap-2">
-          <div className="w-1.5 h-4 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-full animate-pulse" />
-          <h2 className="text-xs font-black uppercase tracking-wider text-neutral-200">
-            {lang === 'vi' ? '🎁 SỰ KIỆN KHUYẾN MÃI & TĂNG TỶ LỆ TRỰC TIẾP' : '🎁 LIVE PROMOTIONAL EVENTS & PAYOUT BOOSTS'}
-          </h2>
-        </div>
-        <div className="flex items-stretch gap-4 overflow-x-auto pb-3.5 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-          {SPORTS_EVENTS.map(evt => {
-            const title = lang === 'vi' ? evt.titleVi : evt.titleEn;
-            const desc = lang === 'vi' ? evt.descVi : evt.descEn;
-            const badge = lang === 'vi' ? evt.badgeVi : evt.badgeEn;
-            
-            return (
-              <div 
-                key={evt.id}
-                className="w-72 shrink-0 bg-luxury-surface/30 backdrop-blur-md border border-luxury-border/40 hover:border-blue-500/40 rounded-2xl p-4.5 flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_8px_25px_rgba(59,130,246,0.1)] relative overflow-hidden group select-none"
-              >
-                {/* Diagonal background gradient glow */}
-                <div className="absolute -top-12 -right-12 w-24 h-24 rounded-full bg-blue-500/10 blur-xl group-hover:scale-125 transition-transform duration-500 pointer-events-none" />
-                
-                <div className="flex flex-col gap-2.5">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xl">{evt.icon}</span>
-                      <h3 className="text-xs font-extrabold text-white truncate max-w-[150px]">{title}</h3>
-                    </div>
-                    <span className="text-[9px] font-black tracking-wider uppercase bg-blue-500/15 border border-blue-500/30 text-blue-400 px-2 py-0.5 rounded-full">
-                      {badge}
-                    </span>
-                  </div>
-                  
-                  <p className="text-[10px] text-neutral-400 font-medium leading-relaxed">
-                    {desc}
-                  </p>
-                </div>
-                
-                {/* Bottom row: active badge & status */}
-                <div className="mt-4 pt-3 border-t border-luxury-border/25 flex items-center justify-between">
-                  <div className="flex items-center gap-1.5 text-[8px] text-neutral-500 font-black uppercase tracking-wider">
-                    <span className="relative flex h-1.5 w-1.5">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-400"></span>
-                    </span>
-                    <span>{lang === 'vi' ? 'Đang Diễn Ra' : 'Active Event'}</span>
-                  </div>
-                  <span className="text-[8px] bg-neutral-900 border border-neutral-800 text-neutral-500 font-bold px-2 py-0.5 rounded-md uppercase">
-                    {evt.id === 'final_fest' || evt.id === 'euro_latino' ? (lang === 'vi' ? 'Trận Chung Kết' : 'Final Match') : (lang === 'vi' ? 'Mọi Trận' : 'All Matches')}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
       </div>
 
       {/* Premium Horizontal Sport Selection Bar */}
@@ -3253,16 +2975,21 @@ export default function SportsBettingGame() {
                 </div>
               ) : (
                 activeBets.map((bet) => {
-                  const matchDate = parseMatchDate(bet.match.local_date, bet.match.stadium_id);
+                  // Pull live match state from cached lists
+                  const liveMatch = matchesList.find(m => m.id === bet.match.id)
+                    || Object.values(sportMatches).flat().find(m => m.id === bet.match.id)
+                    || bet.match;
+
+                  const matchDate = parseMatchDate(liveMatch.local_date, liveMatch.stadium_id);
                   const matchEndDate = new Date(matchDate.getTime() + 90 * 60 * 1000);
-                  const hasEnded = clientTime ? clientTime >= matchEndDate : false;
-                  const isLive = clientTime ? (clientTime >= matchDate && clientTime < matchEndDate) : false;
+                  const hasEnded = liveMatch.finished === 'TRUE' || (clientTime ? clientTime >= matchEndDate : false);
+                  const isLive = !hasEnded && liveMatch.time_elapsed !== 'notstarted' && liveMatch.time_elapsed !== 'finished' && clientTime ? (clientTime >= matchDate && clientTime < matchEndDate) : false;
 
                   let timeLabel = '';
                   if (clientTime) {
                     if (isLive) {
                       const mins = Math.floor((clientTime.getTime() - matchDate.getTime()) / (60 * 1000));
-                      timeLabel = lang === 'vi' ? `Trực tiếp ${mins}'` : `Live ${mins}'`;
+                      timeLabel = lang === 'vi' ? `Phút ${mins}'` : `${mins}'`;
                     } else if (!hasEnded) {
                       const diffMs = matchDate.getTime() - clientTime.getTime();
                       const hours = Math.floor(diffMs / (3600 * 1000));
@@ -3291,8 +3018,8 @@ export default function SportsBettingGame() {
                       : TRANSLATIONS[lang].draw;
                   }
 
-                  const liveHomeScore = parseInt(bet.match.home_score) || 0;
-                  const liveAwayScore = parseInt(bet.match.away_score) || 0;
+                  const liveHomeScore = parseInt(liveMatch.home_score) || 0;
+                  const liveAwayScore = parseInt(liveMatch.away_score) || 0;
                   const isEarlyCashoutEligible = bet.betType === 'early_cashout' && isLive && (
                     (bet.prediction === 'home' && liveHomeScore - liveAwayScore >= 2) ||
                     (bet.prediction === 'away' && liveAwayScore - liveHomeScore >= 2)
@@ -3306,10 +3033,10 @@ export default function SportsBettingGame() {
                       className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 rounded-3xl bg-black/60 border border-luxury-border/60 gap-4"
                     >
                       <div className="flex flex-col gap-1.5">
-                        <div className="flex items-center gap-2 text-[9px] font-bold text-neutral-500 uppercase tracking-wider font-mono">
-                          <span>{lang === 'vi' ? `Bảng ${bet.match.group}` : `Group ${bet.match.group}`}</span>
+                        <div className="flex items-center gap-2 flex-wrap text-[9px] font-bold text-neutral-500 uppercase tracking-wider font-mono">
+                          <span>{lang === 'vi' ? `Bảng ${liveMatch.group}` : `Group ${liveMatch.group}`}</span>
                           <span className="text-neutral-700">•</span>
-                          <span>{lang === 'vi' ? `Trận #${bet.match.id}` : `Match #${bet.match.id}`}</span>
+                          <span>{lang === 'vi' ? `Trận #${liveMatch.id}` : `Match #${liveMatch.id}`}</span>
                           {timeLabel && (
                             <>
                               <span className="text-neutral-700">•</span>
@@ -3319,7 +3046,12 @@ export default function SportsBettingGame() {
                           {isLive && (
                             <>
                               <span className="text-neutral-700">•</span>
-                              <span className="text-amber-450 font-black animate-pulse">({liveHomeScore} - {liveAwayScore})</span>
+                              <span className="flex items-center gap-1 bg-red-500/10 border border-red-500/30 text-red-400 px-1.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider animate-pulse">
+                                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
+                                {lang === 'vi' ? 'Trực Tiếp' : 'LIVE'}
+                              </span>
+                              <span className="text-neutral-700">•</span>
+                              <span className="text-amber-400 font-black animate-pulse">({liveHomeScore} - {liveAwayScore})</span>
                             </>
                           )}
                         </div>
@@ -3842,37 +3574,11 @@ export default function SportsBettingGame() {
                       </div>
                     </div>
 
-                    {/* Applied Promotional Boosts list */}
-                    {settleOutcome.triggeredEvents && settleOutcome.triggeredEvents.length > 0 && (
-                      <div className="flex flex-col gap-1.5 items-center w-full z-10 pb-4 mt-1">
-                        <span className="text-[7.5px] text-neutral-500 font-extrabold uppercase tracking-widest leading-none">
-                          {lang === 'vi' ? 'Khuyến mãi đã kích hoạt' : 'Triggered Promotions'}
-                        </span>
-                        <div className="flex flex-wrap gap-1 justify-center max-w-[220px]">
-                          {settleOutcome.triggeredEvents.map(evtId => {
-                            const evt = SPORTS_EVENTS.find(e => e.id === evtId);
-                            if (!evt) return null;
-                            const title = lang === 'vi' ? evt.titleVi : evt.titleEn;
-                            return (
-                              <span key={evtId} className="text-[7.5px] font-black uppercase bg-white/5 border border-white/10 px-2 py-0.5 rounded-full flex items-center gap-1 text-white">
-                                <span>{evt.icon}</span>
-                                <span>{title}</span>
-                                <span className={evt.id === 'draw_insurance' ? 'text-amber-400' : 'text-blue-400'}>
-                                  ({evt.id === 'draw_insurance' ? 'Refund' : `${evt.multiplier}x`})
-                                </span>
-                              </span>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                    
+
                     <div className="pt-4 z-10">
                       <span className="text-xl font-black block tracking-wide">
                         {settleOutcome.outcome === 'win' 
                           ? TRANSLATIONS[lang].youWonMsg.replace('{amount}', `$${settleOutcome.payout.toLocaleString(undefined, { minimumFractionDigits: 2 })}`) 
-                          : settleOutcome.outcome === 'refund'
-                          ? (lang === 'vi' ? `Hoàn trả $${settleOutcome.payout.toLocaleString(undefined, { minimumFractionDigits: 2 })} Tín dụng!` : `Refunded $${settleOutcome.payout.toLocaleString(undefined, { minimumFractionDigits: 2 })} Credits!`)
                           : TRANSLATIONS[lang].lostStakeMsg.replace('{amount}', `$${settleOutcome.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`)}
                       </span>
                       <span className="text-[8px] text-neutral-500 font-extrabold tracking-widest uppercase block mt-1">
