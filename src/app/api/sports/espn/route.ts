@@ -7,18 +7,50 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const sport = searchParams.get('sport') || 'nba';
 
-    let url = '';
+    // Map common sport IDs to their ESPN API paths
+    let espnSportPath = '';
+    let espnLeaguePath = '';
+
     if (sport === 'nba') {
-      url = 'https://site.api.espn.com/apis/site/v2/sports/basketball/nba/scoreboard';
+      espnSportPath = 'basketball';
+      espnLeaguePath = 'nba';
     } else if (sport === 'nfl') {
-      url = 'https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard';
+      espnSportPath = 'football';
+      espnLeaguePath = 'nfl';
     } else if (sport === 'mlb') {
-      url = 'https://site.api.espn.com/apis/site/v2/sports/baseball/mlb/scoreboard';
+      espnSportPath = 'baseball';
+      espnLeaguePath = 'mlb';
     } else if (sport === 'nhl') {
-      url = 'https://site.api.espn.com/apis/site/v2/sports/hockey/nhl/scoreboard';
+      espnSportPath = 'hockey';
+      espnLeaguePath = 'nhl';
+    } else if (sport === 'ufc' || sport === 'mma') {
+      espnSportPath = 'mma';
+      espnLeaguePath = 'ufc';
+    } else if (sport === 'tennis') {
+      espnSportPath = 'tennis';
+      espnLeaguePath = 'atp';
+    } else if (sport === 'golf') {
+      espnSportPath = 'golf';
+      espnLeaguePath = 'pga';
+    } else if (sport === 'soccer-epl') {
+      espnSportPath = 'soccer';
+      espnLeaguePath = 'eng.1';
+    } else if (sport === 'soccer-laliga') {
+      espnSportPath = 'soccer';
+      espnLeaguePath = 'esp.1';
     } else {
-      return NextResponse.json({ error: 'Unsupported sport' }, { status: 400 });
+      // Allow custom sport/league combinations passed in search params for full public-espn-api compliance!
+      const customSport = searchParams.get('customSport');
+      const customLeague = searchParams.get('customLeague');
+      if (customSport && customLeague) {
+        espnSportPath = customSport.replace(/[^a-zA-Z0-9.-]/g, '');
+        espnLeaguePath = customLeague.replace(/[^a-zA-Z0-9.-]/g, '');
+      } else {
+        return NextResponse.json({ error: 'Unsupported sport' }, { status: 400 });
+      }
     }
+
+    const url = `https://site.api.espn.com/apis/site/v2/sports/${espnSportPath}/${espnLeaguePath}/scoreboard`;
 
     const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) {
