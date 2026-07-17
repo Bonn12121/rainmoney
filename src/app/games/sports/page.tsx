@@ -583,12 +583,17 @@ const parseMatchDate = (dateStr: string, stadiumId?: string): Date => {
     const [month, day, year] = datePart.split('/').map(Number);
     const [hour, minute] = timePart.split(':').map(Number);
     
+    if (!stadiumId) {
+      // Use the user's local timezone (client-local Date object)
+      return new Date(year, month - 1, day, hour, minute);
+    }
+    
     const mm = month.toString().padStart(2, '0');
     const dd = day.toString().padStart(2, '0');
     const hh = hour.toString().padStart(2, '0');
     const min = minute.toString().padStart(2, '0');
     
-    const tz = stadiumId ? getStadiumTimezone(stadiumId) : '-04:00';
+    const tz = getStadiumTimezone(stadiumId);
     const isoStr = `${year}-${mm}-${dd}T${hh}:${min}:00${tz}`;
     return new Date(isoStr);
   } catch (e) {
@@ -1036,7 +1041,6 @@ const generateNflMatches = (clientTime: Date): RawMatch[] => {
       group: sched.type,
       matchday: "1",
       local_date: localDateStr,
-      stadium_id: "1",
       finished: finished,
       time_elapsed: timeElapsed,
       type: "group",
@@ -1113,7 +1117,6 @@ const generateEsportsMatches = (clientTime: Date): RawMatch[] => {
       group: sched.type,
       matchday: "1",
       local_date: localDateStr,
-      stadium_id: "1",
       finished: finished,
       time_elapsed: timeElapsed,
       type: "group",
@@ -1236,7 +1239,10 @@ const mapSportsDbEventToMatch = (event: any, leagueName: string, leagueNameVi: s
   let localDateStr = '06/11/2026 13:00';
   let eventDate = new Date();
   try {
-    const rawStamp = event.strTimestamp || `${event.dateEvent}T${event.strTime || '12:00:00'}`;
+    let rawStamp = event.strTimestamp || `${event.dateEvent}T${event.strTime || '12:00:00'}`;
+    if (rawStamp && !rawStamp.includes('Z') && !rawStamp.includes('+') && !/-\d{2}:\d{2}$/.test(rawStamp)) {
+      rawStamp += 'Z';
+    }
     const d = new Date(rawStamp);
     if (!isNaN(d.getTime())) {
       eventDate = d;
@@ -1253,23 +1259,33 @@ const mapSportsDbEventToMatch = (event: any, leagueName: string, leagueNameVi: s
 
   const now = new Date();
   const hasScore = event.intHomeScore !== null && event.intAwayScore !== null;
-  const isFinished = event.strStatus === 'FT' || (now.getTime() - eventDate.getTime() > 3 * 60 * 60 * 1000 && hasScore);
+  const isPostponed = event.strStatus === 'Postponed' || event.strPostponed === 'yes' || event.strStatus === 'Cancelled';
+  const isFinished = event.strStatus === 'FT' || event.strStatus === 'AOT' || event.strStatus === 'Finished' || isPostponed || (now.getTime() - eventDate.getTime() > 3 * 60 * 60 * 1000 && hasScore);
   const isLive = !isFinished && now >= eventDate && now.getTime() - eventDate.getTime() < 3 * 60 * 60 * 1000;
+
+  let homeScore = '0';
+  let awayScore = '0';
+  if (isPostponed) {
+    homeScore = 'P';
+    awayScore = 'P';
+  } else {
+    homeScore = event.intHomeScore !== null && event.intHomeScore !== undefined ? event.intHomeScore.toString() : '0';
+    awayScore = event.intAwayScore !== null && event.intAwayScore !== undefined ? event.intAwayScore.toString() : '0';
+  }
 
   return {
     id: `sdb-${event.idLeague}-${event.idEvent}`,
     home_team_id: event.strHomeTeam || 'Home Team',
     away_team_id: event.strAwayTeam || 'Away Team',
-    home_score: event.intHomeScore !== null && event.intHomeScore !== undefined ? event.intHomeScore.toString() : '0',
-    away_score: event.intAwayScore !== null && event.intAwayScore !== undefined ? event.intAwayScore.toString() : '0',
+    home_score: homeScore,
+    away_score: awayScore,
     home_scorers: 'null',
     away_scorers: 'null',
     group: leagueNameVi,
     matchday: event.intRound || '1',
     local_date: localDateStr,
-    stadium_id: '1',
     finished: isFinished ? 'TRUE' : 'FALSE',
-    time_elapsed: isFinished ? 'finished' : isLive ? 'live' : 'notstarted',
+    time_elapsed: isPostponed ? 'finished' : isFinished ? 'finished' : isLive ? 'live' : 'notstarted',
     home_team_name_en: event.strHomeTeam || 'Home Team',
     away_team_name_en: event.strAwayTeam || 'Away Team',
     home_team_label: event.strHomeTeam ? event.strHomeTeam.substring(0, 3).toUpperCase() : 'HM',
@@ -1429,7 +1445,6 @@ const mapEspnEventToMatch = (event: any, sportId: string): RawMatch => {
     group: sportId.toUpperCase() + ' Regular Season',
     matchday: '1',
     local_date: localDateStr,
-    stadium_id: '1',
     finished: finished,
     time_elapsed: timeElapsed,
     type: 'group',
@@ -1443,6 +1458,8 @@ const mapEspnEventToMatch = (event: any, sportId: string): RawMatch => {
 };
 
 const getStadiumName = (match: RawMatch): string => {
+  if (!match.stadium_id) return '';
+  
   if (match.id === '104' || match.group === 'FINAL') {
     return 'MetLife Stadium';
   }
@@ -1459,7 +1476,7 @@ const getStadiumName = (match: RawMatch): string => {
     '7': 'Al Janoub Stadium',
     '8': 'Stadium 974',
   };
-  return stadiums[match.stadium_id || '1'] || 'Lusail Iconic Stadium';
+  return stadiums[match.stadium_id] || '';
 };
 
 interface MarketAccordionProps {
@@ -1749,7 +1766,6 @@ export default function SportsBettingGame() {
       group: 'FIBA Basketball World Cup Qualifiers',
       matchday: '1',
       local_date: '06/30/2026 18:00',
-      stadium_id: '1',
       finished: 'TRUE',
       time_elapsed: 'finished',
       home_team_name_en: 'Venezuela Basketball',
@@ -1772,7 +1788,6 @@ export default function SportsBettingGame() {
       group: 'FIBA Basketball World Cup Qualifiers',
       matchday: '1',
       local_date: '06/29/2026 18:00',
-      stadium_id: '1',
       finished: 'TRUE',
       time_elapsed: 'finished',
       home_team_name_en: 'Lebanon Basketball',
@@ -1795,7 +1810,6 @@ export default function SportsBettingGame() {
       group: 'FIBA Basketball World Cup Qualifiers',
       matchday: '1',
       local_date: '06/29/2026 17:00',
-      stadium_id: '1',
       finished: 'TRUE',
       time_elapsed: 'finished',
       home_team_name_en: 'Iraq Basketball',
@@ -1818,7 +1832,6 @@ export default function SportsBettingGame() {
       group: 'FIBA Basketball World Cup Qualifiers',
       matchday: '1',
       local_date: '06/29/2026 19:00',
-      stadium_id: '1',
       finished: 'TRUE',
       time_elapsed: 'finished',
       home_team_name_en: 'Qatar Basketball',
@@ -1841,7 +1854,6 @@ export default function SportsBettingGame() {
       group: 'FIBA Basketball World Cup Qualifiers',
       matchday: '1',
       local_date: '06/29/2026 16:30',
-      stadium_id: '1',
       finished: 'TRUE',
       time_elapsed: 'finished',
       home_team_name_en: 'Iran Basketball',
@@ -1864,7 +1876,6 @@ export default function SportsBettingGame() {
       group: 'FIBA Basketball World Cup Qualifiers',
       matchday: '1',
       local_date: '03/03/2026 18:00',
-      stadium_id: '1',
       finished: 'TRUE',
       time_elapsed: 'finished',
       home_team_name_en: 'Cuba Basketball',
@@ -1887,7 +1898,6 @@ export default function SportsBettingGame() {
       group: 'FIBA Basketball World Cup Qualifiers',
       matchday: '1',
       local_date: '03/02/2026 18:00',
-      stadium_id: '1',
       finished: 'TRUE',
       time_elapsed: 'finished',
       home_team_name_en: 'Chile Basketball',
@@ -1910,7 +1920,6 @@ export default function SportsBettingGame() {
       group: 'FIBA Basketball World Cup Qualifiers',
       matchday: '1',
       local_date: '03/02/2026 19:00',
-      stadium_id: '1',
       finished: 'TRUE',
       time_elapsed: 'finished',
       home_team_name_en: 'Brazil Basketball',
@@ -1933,7 +1942,6 @@ export default function SportsBettingGame() {
       group: 'FIBA Basketball World Cup Qualifiers',
       matchday: '1',
       local_date: '03/02/2026 17:30',
-      stadium_id: '1',
       finished: 'TRUE',
       time_elapsed: 'finished',
       home_team_name_en: 'Argentina Basketball',
@@ -1956,7 +1964,6 @@ export default function SportsBettingGame() {
       group: 'FIBA Basketball World Cup Qualifiers',
       matchday: '1',
       local_date: '03/02/2026 20:00',
-      stadium_id: '1',
       finished: 'TRUE',
       time_elapsed: 'finished',
       home_team_name_en: 'Spain Basketball',
@@ -3312,12 +3319,14 @@ export default function SportsBettingGame() {
                                 {timeLines[1] && <span className="text-white font-mono mt-0.5">{timeLines[1]}</span>}
                               </div>
                               
-                              <span 
-                                className="text-[8px] text-neutral-450 font-bold uppercase tracking-wider text-center mt-1 max-w-[100px] leading-tight line-clamp-2"
-                                title={getStadiumName(match)}
-                              >
-                                {getStadiumName(match)}
-                              </span>
+                              {getStadiumName(match) && (
+                                <span 
+                                  className="text-[8px] text-neutral-450 font-bold uppercase tracking-wider text-center mt-1 max-w-[100px] leading-tight line-clamp-2"
+                                  title={getStadiumName(match)}
+                                >
+                                  {getStadiumName(match)}
+                                </span>
+                              )}
                             </div>
                           </div>
                         );
