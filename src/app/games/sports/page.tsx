@@ -700,6 +700,26 @@ const getGroupStageOrKnockoutTitle = (match: RawMatch, clientTime: Date, isVi: b
   const matchDate = parseMatchDate(match.local_date, match.stadium_id);
   const type = match.type.toLowerCase();
   
+  const isEspn = match.id.startsWith('espn-') || match.id.startsWith('sim-');
+  if (isEspn) {
+    const matchDay = new Date(matchDate.getFullYear(), matchDate.getMonth(), matchDate.getDate());
+    const clientDay = new Date(clientTime.getFullYear(), clientTime.getMonth(), clientTime.getDate());
+    const diffDays = Math.round((matchDay.getTime() - clientDay.getTime()) / (24 * 60 * 60 * 1000));
+    
+    if (diffDays === 0) {
+      return isVi ? 'Lịch thi đấu - Hôm nay' : 'Fixtures - Today';
+    } else if (diffDays === 1) {
+      return isVi ? 'Lịch thi đấu - Ngày mai' : 'Fixtures - Tomorrow';
+    } else {
+      const dayOfWeek = matchDate.getDay();
+      const daysVi = ['CN', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'];
+      const daysEn = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const dayName = isVi ? daysVi[dayOfWeek] : daysEn[dayOfWeek];
+      const dateStr = `${dayName}, ${matchDate.getDate()}/${matchDate.getMonth() + 1}`;
+      return isVi ? `Lịch thi đấu - ${dateStr}` : `Fixtures - ${dateStr}`;
+    }
+  }
+  
   if (type === 'group') {
     const matchDay = new Date(matchDate.getFullYear(), matchDate.getMonth(), matchDate.getDate());
     const clientDay = new Date(clientTime.getFullYear(), clientTime.getMonth(), clientTime.getDate());
@@ -740,6 +760,16 @@ const formatGroupLabel = (group: string, lang: 'en' | 'vi'): string => {
   if (group === 'QF') return lang === 'vi' ? 'Tứ kết' : 'Quarter Final';
   if (group === 'R16') return lang === 'vi' ? 'Vòng 16' : 'Round of 16';
   if (group === 'R32') return lang === 'vi' ? 'Vòng 32' : 'Round of 32';
+  
+  if (group === 'Premier League') return lang === 'vi' ? 'Ngoại hạng Anh' : 'Premier League';
+  if (group === 'LaLiga') return 'LaLiga';
+  if (group === 'NBA') return 'NBA';
+  if (group === 'NFL') return 'NFL';
+  if (group === 'MLB') return 'MLB';
+  if (group === 'NHL') return 'NHL';
+  if (group === 'ATP Tennis') return lang === 'vi' ? 'Quần vợt ATP' : 'ATP Tennis';
+  if (group === 'UFC') return 'UFC';
+  
   return lang === 'vi' ? `Bảng ${group}` : `Group ${group}`;
 };
 
@@ -747,24 +777,6 @@ const groupMatches = (matchesToGroup: RawMatch[], clientTime: Date, lang: 'en' |
   const isVi = lang === 'vi';
   const groupsMap: Record<string, RawMatch[]> = {};
   const groupOrder: string[] = [];
-
-  const isSportsDb = matchesToGroup.length > 0 && matchesToGroup[0].id.startsWith('sdb-');
-
-  if (isSportsDb) {
-    matchesToGroup.forEach(match => {
-      const key = match.group || 'Other League';
-      if (!groupsMap[key]) {
-        groupsMap[key] = [];
-        groupOrder.push(key);
-      }
-      groupsMap[key].push(match);
-    });
-
-    return groupOrder.map(key => ({
-      title: key,
-      matches: groupsMap[key]
-    }));
-  }
 
   matchesToGroup.forEach(match => {
     const matchDate = parseMatchDate(match.local_date, match.stadium_id);
@@ -1107,7 +1119,7 @@ const generateEsportsMatches = (clientTime: Date): RawMatch[] => {
     }
     
     matches.push({
-      id: `sdb-esports-${i + 1}`,
+      id: `sim-esports-${i + 1}`,
       home_team_id: sched.home,
       away_team_id: sched.away,
       home_score: homeScore,
@@ -1143,49 +1155,64 @@ const SPORTS_CONFIGS = [
     name: 'Football', 
     nameVi: 'Bóng đá', 
     icon: '⚽',
-    leagues: []
+    leagues: [
+      { id: 'soccer-epl', name: 'Premier League', nameVi: 'Ngoại hạng Anh' },
+      { id: 'soccer-laliga', name: 'LaLiga', nameVi: 'LaLiga' }
+    ]
   },
   {
     id: 'nfl',
     name: 'NFL',
     nameVi: 'Bóng bầu dục (NFL)',
     icon: '🏈',
-    leagues: []
+    leagues: [
+      { id: 'nfl', name: 'NFL', nameVi: 'NFL' }
+    ]
   },
   {
     id: 'nba',
     name: 'NBA',
     nameVi: 'Bóng rổ (NBA)',
     icon: '🏀',
-    leagues: []
+    leagues: [
+      { id: 'nba', name: 'NBA', nameVi: 'NBA' }
+    ]
   },
   {
     id: 'mlb',
     name: 'MLB',
     nameVi: 'Bóng chày (MLB)',
     icon: '⚾',
-    leagues: []
+    leagues: [
+      { id: 'mlb', name: 'MLB', nameVi: 'MLB' }
+    ]
   },
   {
     id: 'nhl',
     name: 'NHL',
     nameVi: 'Khúc côn cầu (NHL)',
     icon: '🏒',
-    leagues: []
+    leagues: [
+      { id: 'nhl', name: 'NHL', nameVi: 'NHL' }
+    ]
   },
   {
     id: 'tennis',
     name: 'Tennis',
     nameVi: 'Quần vợt (ATP)',
     icon: '🎾',
-    leagues: []
+    leagues: [
+      { id: 'tennis', name: 'ATP Tennis', nameVi: 'Quần vợt ATP' }
+    ]
   },
   {
     id: 'ufc',
     name: 'UFC',
     nameVi: 'Võ thuật (UFC)',
     icon: '🥊',
-    leagues: []
+    leagues: [
+      { id: 'ufc', name: 'UFC', nameVi: 'UFC' }
+    ]
   },
   {
     id: 'esports',
@@ -1228,164 +1255,15 @@ const getTeamStrength = (teamName: string): number => {
   return strength;
 };
 
-const mapSportsDbEventToMatch = (event: any, leagueName: string, leagueNameVi: string): RawMatch => {
-  let localDateStr = '06/11/2026 13:00';
-  let eventDate = new Date();
-  try {
-    let rawStamp = event.strTimestamp || `${event.dateEvent}T${event.strTime || '12:00:00'}`;
-    if (rawStamp && !rawStamp.includes('Z') && !rawStamp.includes('+') && !/-\d{2}:\d{2}$/.test(rawStamp)) {
-      rawStamp += 'Z';
-    }
-    const d = new Date(rawStamp);
-    if (!isNaN(d.getTime())) {
-      eventDate = d;
-      const mm = (d.getMonth() + 1).toString().padStart(2, '0');
-      const dd = d.getDate().toString().padStart(2, '0');
-      const yyyy = d.getFullYear();
-      const hh = d.getHours().toString().padStart(2, '0');
-      const min = d.getMinutes().toString().padStart(2, '0');
-      localDateStr = `${mm}/${dd}/${yyyy} ${hh}:${min}`;
-    }
-  } catch (e) {
-    console.error('Error formatting SportsDB event date:', e);
-  }
-
-  const now = new Date();
-  const hasScore = event.intHomeScore !== null && event.intAwayScore !== null;
-  const isPostponed = event.strStatus === 'Postponed' || event.strPostponed === 'yes' || event.strStatus === 'Cancelled';
-  const isFinished = event.strStatus === 'FT' || event.strStatus === 'AOT' || event.strStatus === 'Finished' || isPostponed || (now.getTime() - eventDate.getTime() > 3 * 60 * 60 * 1000 && hasScore);
-  const isLive = !isFinished && now >= eventDate && now.getTime() - eventDate.getTime() < 3 * 60 * 60 * 1000;
-
-  let homeScore = '0';
-  let awayScore = '0';
-  if (isPostponed) {
-    homeScore = 'P';
-    awayScore = 'P';
-  } else {
-    homeScore = event.intHomeScore !== null && event.intHomeScore !== undefined ? event.intHomeScore.toString() : '0';
-    awayScore = event.intAwayScore !== null && event.intAwayScore !== undefined ? event.intAwayScore.toString() : '0';
-  }
-
-  return {
-    id: `sdb-${event.idLeague}-${event.idEvent}`,
-    home_team_id: event.strHomeTeam || 'Home Team',
-    away_team_id: event.strAwayTeam || 'Away Team',
-    home_score: homeScore,
-    away_score: awayScore,
-    home_scorers: 'null',
-    away_scorers: 'null',
-    group: leagueNameVi,
-    matchday: event.intRound || '1',
-    local_date: localDateStr,
-    finished: isFinished ? 'TRUE' : 'FALSE',
-    time_elapsed: isPostponed ? 'finished' : isFinished ? 'finished' : isLive ? 'live' : 'notstarted',
-    home_team_name_en: event.strHomeTeam || 'Home Team',
-    away_team_name_en: event.strAwayTeam || 'Away Team',
-    home_team_label: event.strHomeTeam ? event.strHomeTeam.substring(0, 3).toUpperCase() : 'HM',
-    away_team_label: event.strAwayTeam ? event.strAwayTeam.substring(0, 3).toUpperCase() : 'AW',
-    home_badge: event.strHomeTeamBadge || '',
-    away_badge: event.strAwayTeamBadge || ''
-  } as any;
-};
-
-const shiftMatchDates = (matches: RawMatch[], referenceDate: Date): RawMatch[] => {
-  if (matches.length === 0) return [];
-
-  // Parse original SportsDB event timestamps
-  const matchesWithDates = matches.map(match => {
-    let originalDate = new Date(match.local_date);
-    // Fallback if Date parsing fails (e.g. invalid date string formats)
-    if (isNaN(originalDate.getTime())) {
-      const parts = match.local_date.split(' ');
-      if (parts[0]) {
-        const [yyyy, mm, dd] = parts[0].split('-').map(Number);
-        const [hh, min] = (parts[1] || '12:00').split(':').map(Number);
-        originalDate = new Date(yyyy, mm - 1, dd, hh || 12, min || 0);
-      }
-    }
-    if (isNaN(originalDate.getTime())) {
-      originalDate = new Date();
-    }
-    return { match, originalDate };
-  });
-
-  // Sort chronologically by their original play date
-  matchesWithDates.sort((a, b) => a.originalDate.getTime() - b.originalDate.getTime());
-
-  const earliestOriginal = matchesWithDates[0].originalDate.getTime();
-
-  // Project the beginning of the season to start 1.5 days ago relative to the current local clock
-  // This yields a clean mix of recently concluded (Finished), active (Live), and schedule (Upcoming) fixtures
-  const offset = referenceDate.getTime() - earliestOriginal - 1.5 * 24 * 60 * 60 * 1000;
-
-  const shifted = matchesWithDates.map(({ match, originalDate }) => {
-    const shiftedTime = new Date(originalDate.getTime() + offset);
-    
-    // Format to "MM/DD/YYYY HH:mm" for parsing consistency
-    const mm = (shiftedTime.getMonth() + 1).toString().padStart(2, '0');
-    const dd = shiftedTime.getDate().toString().padStart(2, '0');
-    const yyyy = shiftedTime.getFullYear();
-    const hh = shiftedTime.getHours().toString().padStart(2, '0');
-    const min = shiftedTime.getMinutes().toString().padStart(2, '0');
-    const localDateStr = `${mm}/${dd}/${yyyy} ${hh}:${min}`;
-
-    const matchEndDate = new Date(shiftedTime.getTime() + 2 * 60 * 60 * 1000);
-    const hasEnded = referenceDate >= matchEndDate;
-    const isLive = referenceDate >= shiftedTime && referenceDate < matchEndDate;
-
-    let finished = 'FALSE';
-    let timeElapsed = 'notstarted';
-    let homeScore = '0';
-    let awayScore = '0';
-
-    if (hasEnded) {
-      finished = 'TRUE';
-      timeElapsed = 'finished';
-      homeScore = match.home_score !== '0' && match.home_score !== null ? match.home_score : '0';
-      awayScore = match.away_score !== '0' && match.away_score !== null ? match.away_score : '0';
-    } else if (isLive) {
-      finished = 'FALSE';
-      const elapsedMinutes = Math.floor((referenceDate.getTime() - shiftedTime.getTime()) / (60 * 1000));
-      timeElapsed = `${elapsedMinutes}m`;
-      
-      // Gradually build up scores matching final SportsDB result relative to elapsed progress
-      const finalHome = parseInt(match.home_score) || 0;
-      const finalAway = parseInt(match.away_score) || 0;
-      homeScore = Math.floor(finalHome * (elapsedMinutes / 90)).toString();
-      awayScore = Math.floor(finalAway * (elapsedMinutes / 90)).toString();
-    } else {
-      finished = 'FALSE';
-      timeElapsed = 'notstarted';
-      homeScore = '0';
-      awayScore = '0';
-    }
-
-    return {
-      ...match,
-      local_date: localDateStr,
-      finished,
-      time_elapsed: timeElapsed,
-      home_score: homeScore,
-      away_score: awayScore
-    };
-  });
-
-  // Filter to keep matches relative to current time window (not all season matches to avoid lag):
-  // - Concluded matches ended within the last 1.5 days
-  // - Live matches currently in progress
-  // - Upcoming matches starting within the next 5 days (limiting the list size)
-  const filtered = shifted.filter(m => {
-    const matchDate = parseMatchDate(m.local_date, m.stadium_id);
-    const matchEndDate = new Date(matchDate.getTime() + 2 * 60 * 60 * 1000);
-    
-    const finishedTooLongAgo = referenceDate.getTime() - matchEndDate.getTime() > 1.5 * 24 * 60 * 60 * 1000;
-    const tooFarInFuture = matchDate.getTime() - referenceDate.getTime() > 5 * 24 * 60 * 60 * 1000;
-
-    return !finishedTooLongAgo && !tooFarInFuture;
-  });
-
-  // Fallback to return at least a subset of matches if filtering leaves it empty
-  return filtered.length > 0 ? filtered : shifted.slice(0, 15);
+const formatTime12h = (date: Date): string => {
+  let hours = date.getHours();
+  const minutes = date.getMinutes();
+  const ampm = hours >= 12 ? 'PM' : 'AM';
+  hours = hours % 12;
+  hours = hours ? hours : 12; // 0 should be 12
+  const minStr = minutes.toString().padStart(2, '0');
+  const hrStr = hours.toString().padStart(2, '0');
+  return `${hrStr}:${minStr}${ampm}`;
 };
 
 const mapEspnEventToMatch = (event: any, sportId: string): RawMatch => {
@@ -1427,6 +1305,17 @@ const mapEspnEventToMatch = (event: any, sportId: string): RawMatch => {
     console.error('Error formatting ESPN event date', e);
   }
   
+  let leagueLabel = '';
+  if (sportId === 'soccer-epl') leagueLabel = 'Premier League';
+  else if (sportId === 'soccer-laliga') leagueLabel = 'LaLiga';
+  else if (sportId === 'nba') leagueLabel = 'NBA';
+  else if (sportId === 'nfl') leagueLabel = 'NFL';
+  else if (sportId === 'mlb') leagueLabel = 'MLB';
+  else if (sportId === 'nhl') leagueLabel = 'NHL';
+  else if (sportId === 'tennis') leagueLabel = 'ATP Tennis';
+  else if (sportId === 'ufc') leagueLabel = 'UFC';
+  else leagueLabel = sportId.toUpperCase();
+  
   return {
     id: `espn-${sportId}-${event.id}`,
     home_team_id: homeTeam.displayName || 'Home Team',
@@ -1435,7 +1324,7 @@ const mapEspnEventToMatch = (event: any, sportId: string): RawMatch => {
     away_score: awayScore.toString(),
     home_scorers: 'null',
     away_scorers: 'null',
-    group: sportId.toUpperCase() + ' Regular Season',
+    group: leagueLabel,
     matchday: '1',
     local_date: localDateStr,
     finished: finished,
@@ -1646,6 +1535,7 @@ export default function SportsBettingGame() {
 
   // Sport Selection & Simulated Games States
   const [selectedSport, setSelectedSport] = useState<string>('fifa-world-cup');
+  const [selectedLeague, setSelectedLeague] = useState<string>('all');
   const [sportMatches, setSportMatches] = useState<Record<string, RawMatch[]>>({});
 
   // Multipliers/odds state
@@ -1659,7 +1549,6 @@ export default function SportsBettingGame() {
     
     const sportId = match.id.startsWith('espn-') ? match.id.split('-')[1]
       : match.id.startsWith('sim-') ? match.id.split('-')[1]
-      : match.id.startsWith('sdb-') ? 'football'
       : 'fifa-world-cup';
     
     if (match.id === '104') {
@@ -1748,423 +1637,12 @@ export default function SportsBettingGame() {
   };
 
   // Mount logic & API fetch and local storage load
-  const MOCK_FIBA_MATCHES: RawMatch[] = [
-    {
-      id: 'sdb-4549-mock-1',
-      home_team_id: 'Venezuela Basketball',
-      away_team_id: 'Colombia Basketball',
-      home_score: 'P',
-      away_score: 'P',
-      home_scorers: 'null',
-      away_scorers: 'null',
-      group: 'FIBA Basketball World Cup Qualifiers',
-      matchday: '1',
-      local_date: '06/30/2026 18:00',
-      finished: 'TRUE',
-      time_elapsed: 'finished',
-      home_team_name_en: 'Venezuela Basketball',
-      away_team_name_en: 'Colombia Basketball',
-      home_team_label: 'VEN',
-      away_team_label: 'COL',
-      home_badge: '',
-      away_badge: '',
-      home_iso2: 'VE',
-      away_iso2: 'CO'
-    } as any,
-    {
-      id: 'sdb-4549-mock-2',
-      home_team_id: 'Lebanon Basketball',
-      away_team_id: 'India Basketball',
-      home_score: '99',
-      away_score: '56',
-      home_scorers: 'null',
-      away_scorers: 'null',
-      group: 'FIBA Basketball World Cup Qualifiers',
-      matchday: '1',
-      local_date: '06/29/2026 18:00',
-      finished: 'TRUE',
-      time_elapsed: 'finished',
-      home_team_name_en: 'Lebanon Basketball',
-      away_team_name_en: 'India Basketball',
-      home_team_label: 'LBN',
-      away_team_label: 'IND',
-      home_badge: '',
-      away_badge: '',
-      home_iso2: 'LB',
-      away_iso2: 'IN'
-    } as any,
-    {
-      id: 'sdb-4549-mock-3',
-      home_team_id: 'Iraq Basketball',
-      away_team_id: 'Jordan Basketball',
-      home_score: '59',
-      away_score: '108',
-      home_scorers: 'null',
-      away_scorers: 'null',
-      group: 'FIBA Basketball World Cup Qualifiers',
-      matchday: '1',
-      local_date: '06/29/2026 17:00',
-      finished: 'TRUE',
-      time_elapsed: 'finished',
-      home_team_name_en: 'Iraq Basketball',
-      away_team_name_en: 'Jordan Basketball',
-      home_team_label: 'IRQ',
-      away_team_label: 'JOR',
-      home_badge: '',
-      away_badge: '',
-      home_iso2: 'IQ',
-      away_iso2: 'JO'
-    } as any,
-    {
-      id: 'sdb-4549-mock-4',
-      home_team_id: 'Qatar Basketball',
-      away_team_id: 'Saudi Arabia Basketball',
-      home_score: '80',
-      away_score: '86',
-      home_scorers: 'null',
-      away_scorers: 'null',
-      group: 'FIBA Basketball World Cup Qualifiers',
-      matchday: '1',
-      local_date: '06/29/2026 19:00',
-      finished: 'TRUE',
-      time_elapsed: 'finished',
-      home_team_name_en: 'Qatar Basketball',
-      away_team_name_en: 'Saudi Arabia Basketball',
-      home_team_label: 'QAT',
-      away_team_label: 'KSA',
-      home_badge: '',
-      away_badge: '',
-      home_iso2: 'QA',
-      away_iso2: 'SA'
-    } as any,
-    {
-      id: 'sdb-4549-mock-5',
-      home_team_id: 'Iran Basketball',
-      away_team_id: 'Syria Basketball',
-      home_score: '72',
-      away_score: '68',
-      home_scorers: 'null',
-      away_scorers: 'null',
-      group: 'FIBA Basketball World Cup Qualifiers',
-      matchday: '1',
-      local_date: '06/29/2026 16:30',
-      finished: 'TRUE',
-      time_elapsed: 'finished',
-      home_team_name_en: 'Iran Basketball',
-      away_team_name_en: 'Syria Basketball',
-      home_team_label: 'IRI',
-      away_team_label: 'SYR',
-      home_badge: '',
-      away_badge: '',
-      home_iso2: 'IR',
-      away_iso2: 'SY'
-    } as any,
-    {
-      id: 'sdb-4549-mock-6',
-      home_team_id: 'Cuba Basketball',
-      away_team_id: 'Uruguay Basketball',
-      home_score: '62',
-      away_score: '88',
-      home_scorers: 'null',
-      away_scorers: 'null',
-      group: 'FIBA Basketball World Cup Qualifiers',
-      matchday: '1',
-      local_date: '03/03/2026 18:00',
-      finished: 'TRUE',
-      time_elapsed: 'finished',
-      home_team_name_en: 'Cuba Basketball',
-      away_team_name_en: 'Uruguay Basketball',
-      home_team_label: 'CUB',
-      away_team_label: 'URU',
-      home_badge: '',
-      away_badge: '',
-      home_iso2: 'CU',
-      away_iso2: 'UY'
-    } as any,
-    {
-      id: 'sdb-4549-mock-7',
-      home_team_id: 'Chile Basketball',
-      away_team_id: 'Venezuela Basketball',
-      home_score: '68',
-      away_score: '72',
-      home_scorers: 'null',
-      away_scorers: 'null',
-      group: 'FIBA Basketball World Cup Qualifiers',
-      matchday: '1',
-      local_date: '03/02/2026 18:00',
-      finished: 'TRUE',
-      time_elapsed: 'finished',
-      home_team_name_en: 'Chile Basketball',
-      away_team_name_en: 'Venezuela Basketball',
-      home_team_label: 'CHI',
-      away_team_label: 'VEN',
-      home_badge: '',
-      away_badge: '',
-      home_iso2: 'CL',
-      away_iso2: 'VE'
-    } as any,
-    {
-      id: 'sdb-4549-mock-8',
-      home_team_id: 'Brazil Basketball',
-      away_team_id: 'Colombia Basketball',
-      home_score: '101',
-      away_score: '72',
-      home_scorers: 'null',
-      away_scorers: 'null',
-      group: 'FIBA Basketball World Cup Qualifiers',
-      matchday: '1',
-      local_date: '03/02/2026 19:00',
-      finished: 'TRUE',
-      time_elapsed: 'finished',
-      home_team_name_en: 'Brazil Basketball',
-      away_team_name_en: 'Colombia Basketball',
-      home_team_label: 'BRA',
-      away_team_label: 'COL',
-      home_badge: '',
-      away_badge: '',
-      home_iso2: 'BR',
-      away_iso2: 'CO'
-    } as any,
-    {
-      id: 'sdb-4549-mock-9',
-      home_team_id: 'Argentina Basketball',
-      away_team_id: 'Panama Basketball',
-      home_score: '101',
-      away_score: '75',
-      home_scorers: 'null',
-      away_scorers: 'null',
-      group: 'FIBA Basketball World Cup Qualifiers',
-      matchday: '1',
-      local_date: '03/02/2026 17:30',
-      finished: 'TRUE',
-      time_elapsed: 'finished',
-      home_team_name_en: 'Argentina Basketball',
-      away_team_name_en: 'Panama Basketball',
-      home_team_label: 'ARG',
-      away_team_label: 'PAN',
-      home_badge: '',
-      away_badge: '',
-      home_iso2: 'AR',
-      away_iso2: 'PA'
-    } as any,
-    {
-      id: 'sdb-4549-mock-10',
-      home_team_id: 'Spain Basketball',
-      away_team_id: 'Ukraine Basketball',
-      home_score: '78',
-      away_score: '64',
-      home_scorers: 'null',
-      away_scorers: 'null',
-      group: 'FIBA Basketball World Cup Qualifiers',
-      matchday: '1',
-      local_date: '03/02/2026 20:00',
-      finished: 'TRUE',
-      time_elapsed: 'finished',
-      home_team_name_en: 'Spain Basketball',
-      away_team_name_en: 'Ukraine Basketball',
-      home_team_label: 'ESP',
-      away_team_label: 'UKR',
-      home_badge: '',
-      away_badge: '',
-      home_iso2: 'ES',
-      away_iso2: 'UA'
-    } as any
-  ];
+
 
   const fetchEspnMatches = async (sportId: string) => {
     if (sportId === 'fifa-world-cup') return;
 
-    const espnSports = ['nba', 'mlb', 'nhl', 'soccer-epl', 'soccer-laliga', 'tennis', 'ufc'];
-    
-    if (sportId === 'football') {
-      const cacheKey = 'rm_sports_espn_cache_football';
-      const cacheTimeKey = 'rm_sports_espn_time_football';
-      const cachedGames = localStorage.getItem(cacheKey);
-      const cachedTime = localStorage.getItem(cacheTimeKey);
-
-      const now = new Date();
-      const isCacheValid = cachedGames && cachedTime && (now.getTime() - Number(cachedTime) < 3 * 60 * 1000);
-
-      if (isCacheValid) {
-        const parsed = JSON.parse(cachedGames);
-        setSportMatches(prev => ({
-          ...prev,
-          football: parsed
-        }));
-        return;
-      }
-
-      try {
-        const [resEpl, resLaLiga] = await Promise.all([
-          fetch('/api/sports/espn?sport=soccer-epl', { cache: 'no-store' }),
-          fetch('/api/sports/espn?sport=soccer-laliga', { cache: 'no-store' })
-        ]);
-        
-        let allFootballEvents: RawMatch[] = [];
-
-        if (resEpl.ok) {
-          const dataEpl = await resEpl.json();
-          if (dataEpl.events && Array.isArray(dataEpl.events)) {
-            const mapped = dataEpl.events.map((ev: any) => mapEspnEventToMatch(ev, 'soccer-epl'));
-            allFootballEvents.push(...mapped);
-          }
-        }
-
-        if (resLaLiga.ok) {
-          const dataLaLiga = await resLaLiga.json();
-          if (dataLaLiga.events && Array.isArray(dataLaLiga.events)) {
-            const mapped = dataLaLiga.events.map((ev: any) => mapEspnEventToMatch(ev, 'soccer-laliga'));
-            allFootballEvents.push(...mapped);
-          }
-        }
-
-        const sorted = allFootballEvents.sort((a: any, b: any) => {
-          return parseMatchDate(a.local_date, a.stadium_id).getTime() - parseMatchDate(b.local_date, b.stadium_id).getTime();
-        });
-
-        setSportMatches(prev => ({
-          ...prev,
-          football: sorted
-        }));
-
-        localStorage.setItem(cacheKey, JSON.stringify(sorted));
-        localStorage.setItem(cacheTimeKey, now.getTime().toString());
-      } catch (err) {
-        console.error('Failed to fetch combined football matches:', err);
-      }
-      return;
-    }
-    
-    // Try fetching real NFL games from ESPN API first. Fallback to simulation if empty.
-    if (sportId === 'nfl') {
-      try {
-        const res = await fetch('/api/sports/espn?sport=nfl', { cache: 'no-store' });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.events && Array.isArray(data.events) && data.events.length > 0) {
-            const mapped = data.events.map((ev: any) => mapEspnEventToMatch(ev, 'nfl'));
-            const sorted = mapped.sort((a: any, b: any) => {
-              return parseMatchDate(a.local_date, a.stadium_id).getTime() - parseMatchDate(b.local_date, b.stadium_id).getTime();
-            });
-            setSportMatches(prev => ({
-              ...prev,
-              nfl: sorted
-            }));
-            localStorage.setItem('rm_sports_espn_cache_nfl', JSON.stringify(sorted));
-            return;
-          }
-        }
-      } catch (e) {
-        console.warn('Real NFL API fetch failed, falling back to simulation:', e);
-      }
-    }
-
-    if (espnSports.includes(sportId)) {
-      const cacheKey = `rm_sports_espn_cache_${sportId}`;
-      const cacheTimeKey = `rm_sports_espn_time_${sportId}`;
-      const cachedGames = localStorage.getItem(cacheKey);
-      const cachedTime = localStorage.getItem(cacheTimeKey);
-
-      const now = new Date();
-      const isCacheValid = cachedGames && cachedTime && (now.getTime() - Number(cachedTime) < 3 * 60 * 1000);
-
-      if (isCacheValid) {
-        const parsed = JSON.parse(cachedGames);
-        setSportMatches(prev => ({
-          ...prev,
-          [sportId]: parsed
-        }));
-        return;
-      }
-
-      try {
-        const res = await fetch(`/api/sports/espn?sport=${sportId}`, { cache: 'no-store' });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.events && Array.isArray(data.events)) {
-            const mapped = data.events.map((ev: any) => mapEspnEventToMatch(ev, sportId));
-            const sorted = mapped.sort((a: any, b: any) => {
-              return parseMatchDate(a.local_date, a.stadium_id).getTime() - parseMatchDate(b.local_date, b.stadium_id).getTime();
-            });
-
-            setSportMatches(prev => ({
-              ...prev,
-              [sportId]: sorted
-            }));
-
-            localStorage.setItem(cacheKey, JSON.stringify(sorted));
-            localStorage.setItem(cacheTimeKey, now.getTime().toString());
-            return;
-          }
-        }
-      } catch (err) {
-        console.error(`Failed to fetch ESPN matches for ${sportId}:`, err);
-      }
-      return;
-    }
-
-    if (sportId === 'nfl') {
-      const stored = localStorage.getItem('rm_sports_sdb_cache_nfl');
-      let mapped: RawMatch[] = [];
-      const now = new Date();
-      if (stored) {
-        mapped = JSON.parse(stored);
-        let changed = false;
-        mapped = mapped.map(match => {
-          const matchDate = parseMatchDate(match.local_date, match.stadium_id);
-          const matchEndDate = new Date(matchDate.getTime() + 180 * 60 * 1000); // 3 hours for NFL
-          
-          const isLiveNow = now >= matchDate && now < matchEndDate;
-          const hasEndedNow = now >= matchEndDate;
-          
-          let mChanged = false;
-          let homeScore = match.home_score;
-          let awayScore = match.away_score;
-          let finished = match.finished;
-          let timeElapsed = match.time_elapsed;
-
-          if (hasEndedNow && match.finished !== 'TRUE') {
-            const generateRealisticNflScore = () => {
-              const scores = [0, 3, 6, 7, 9, 10, 13, 14, 16, 17, 20, 21, 23, 24, 27, 28, 30, 31, 34, 35, 38, 41, 45];
-              return scores[Math.floor(Math.random() * scores.length)];
-            };
-            homeScore = generateRealisticNflScore().toString();
-            awayScore = generateRealisticNflScore().toString();
-            finished = 'TRUE';
-            timeElapsed = 'finished';
-            mChanged = true;
-          } else if (isLiveNow) {
-            const elapsed = Math.floor((now.getTime() - matchDate.getTime()) / (60 * 1000));
-            timeElapsed = `${Math.floor(elapsed / 45) + 1}Q`; // 4 quarters
-            if (Math.random() < 0.05) {
-              const scoreIncrease = [3, 6, 7][Math.floor(Math.random() * 3)];
-              if (Math.random() < 0.5) homeScore = (Number(homeScore) + scoreIncrease).toString();
-              else awayScore = (Number(awayScore) + scoreIncrease).toString();
-              mChanged = true;
-            }
-          }
-          
-          if (mChanged) {
-            changed = true;
-            return { ...match, home_score: homeScore, away_score: awayScore, finished, time_elapsed: timeElapsed };
-          }
-          return match;
-        });
-        
-        if (changed) {
-          localStorage.setItem('rm_sports_sdb_cache_nfl', JSON.stringify(mapped));
-        }
-      } else {
-        mapped = generateNflMatches(now);
-        localStorage.setItem('rm_sports_sdb_cache_nfl', JSON.stringify(mapped));
-      }
-      
-      setSportMatches(prev => ({
-        ...prev,
-        nfl: mapped
-      }));
-      return;
-    }
+    // Handle Esports simulation separately
     if (sportId === 'esports') {
       const stored = localStorage.getItem('rm_sports_sdb_cache_esports');
       let mapped: RawMatch[] = [];
@@ -2226,21 +1704,22 @@ export default function SportsBettingGame() {
     const config = SPORTS_CONFIGS.find(s => s.id === sportId);
     if (!config || !config.leagues || config.leagues.length === 0) return;
 
-    const now = new Date();
-    const cacheKey = `rm_sports_sdb_cache_${sportId}`;
-    const cacheTimeKey = `rm_sports_sdb_time_${sportId}`;
+    const cacheKey = `rm_sports_espn_cache_${sportId}`;
+    const cacheTimeKey = `rm_sports_espn_time_${sportId}`;
     const cachedGames = localStorage.getItem(cacheKey);
     const cachedTime = localStorage.getItem(cacheTimeKey);
 
-    // Aggressive cache validity to prevent running out of free API requests (saves cached results for 6 hours)
-    const isCacheValid = cachedGames && cachedTime && (now.getTime() - Number(cachedTime) < 6 * 60 * 60 * 1000);
+    const now = new Date();
+    // Cache ESPN fetches for 3 minutes to avoid over-fetching
+    const isCacheValid = cachedGames && cachedTime && (now.getTime() - Number(cachedTime) < 3 * 60 * 1000);
 
     if (isCacheValid) {
-      const parsed = JSON.parse(cachedGames) as RawMatch[];
+      const parsed = JSON.parse(cachedGames);
       
-      const updated = parsed.map(match => {
+      // Update the live/ended statuses dynamically even if using cached score layouts
+      const updated = parsed.map((match: RawMatch) => {
         const matchDate = parseMatchDate(match.local_date, match.stadium_id);
-        const matchEndDate = new Date(matchDate.getTime() + 90 * 60 * 1000);
+        const matchEndDate = new Date(matchDate.getTime() + 120 * 60 * 1000);
         
         const isLiveNow = now >= matchDate && now < matchEndDate;
         const hasEndedNow = now >= matchEndDate;
@@ -2260,7 +1739,7 @@ export default function SportsBettingGame() {
           timeElapsed = `${elapsed}m`;
           
           if (Math.random() < 0.05) {
-            if (sportId === 'basketball') {
+            if (sportId === 'nba') {
               homeScore = (Number(homeScore) + Math.floor(Math.random() * 3 + 1)).toString();
               awayScore = (Number(awayScore) + Math.floor(Math.random() * 3 + 1)).toString();
             } else {
@@ -2277,96 +1756,37 @@ export default function SportsBettingGame() {
         return match;
       });
 
-      setSportMatches(prev => ({ ...prev, [sportId]: updated }));
+      setSportMatches(prev => ({
+        ...prev,
+        [sportId]: updated
+      }));
       localStorage.setItem(cacheKey, JSON.stringify(updated));
       return;
     }
 
     try {
-      const allMatches: RawMatch[] = [];
-
-      // Determine the SportsDB category name for auto-discovery
-      let sportsDbName = '';
-      if (sportId === 'basketball') sportsDbName = 'Basketball';
-      else if (sportId === 'baseball') sportsDbName = 'Baseball';
-      else if (sportId === 'american-football') sportsDbName = 'American_Football';
-      else if (sportId === 'ice-hockey') sportsDbName = 'Ice_Hockey';
-      else if (sportId === 'tennis') sportsDbName = 'Tennis';
-
-      // 1. Start with our predefined major leagues
-      let leaguesToFetch: Array<{ id: string; name: string; nameVi: string; season: string }> = [...(config.leagues || [])] as any[];
-
-      // 2. Fetch and auto-discover all other tournaments/leagues for this sport
-      if (sportsDbName) {
+      // Fetch all leagues of the sport in parallel
+      const fetchPromises = config.leagues.map(async (league) => {
         try {
-          const discRes = await fetch(`/api/sports/sportsdb?sportLeagues=${sportsDbName}`, { cache: 'no-store' });
-          if (discRes.ok) {
-            const discData = await discRes.json();
-            if (discData.countries && Array.isArray(discData.countries)) {
-              discData.countries.forEach((l: any) => {
-                if (l.idLeague && !leaguesToFetch.some(existing => existing.id === l.idLeague)) {
-                  leaguesToFetch.push({
-                    id: l.idLeague,
-                    name: l.strLeague,
-                    nameVi: l.strLeague,
-                    season: l.strCurrentSeason || '2023-2024'
-                  });
-                }
-              });
-            }
-          }
-        } catch (e) {
-          console.error('Failed to auto-discover leagues:', e);
-        }
-      }
-
-      // 3. Limit to at most 6 leagues to prevent API rate limiting (30 requests/min on free tier)
-      const finalLeagues = leaguesToFetch.slice(0, 6);
-
-      for (const league of finalLeagues) {
-        // Fetch upcoming events (next events)
-        try {
-          const nextRes = await fetch(`/api/sports/sportsdb?next=${league.id}`, { cache: 'no-store' });
-          if (nextRes.ok) {
-            const nextData = await nextRes.json();
-            if (nextData.events && Array.isArray(nextData.events)) {
-              const mapped = nextData.events.map((ev: any) => mapSportsDbEventToMatch(ev, league.name, league.nameVi));
-              allMatches.push(...mapped);
-            }
-          }
-        } catch (err) {
-          console.error(`Failed to fetch upcoming events for league ${league.id}:`, err);
-        }
-
-        // Fetch season events (recent results)
-        try {
-          const res = await fetch(`/api/sports/sportsdb?id=${league.id}&s=${league.season}`, { cache: 'no-store' });
+          const res = await fetch(`/api/sports/espn?sport=${league.id}`, { cache: 'no-store' });
           if (res.ok) {
             const data = await res.json();
             if (data.events && Array.isArray(data.events)) {
-              const mapped = data.events.map((ev: any) => mapSportsDbEventToMatch(ev, league.name, league.nameVi));
-              allMatches.push(...mapped);
+              return data.events.map((ev: any) => mapEspnEventToMatch(ev, league.id));
             }
           }
         } catch (err) {
-          console.error(`Failed to fetch season events for league ${league.id}:`, err);
+          console.error(`Failed to fetch ESPN matches for league ${league.id}:`, err);
         }
-      }
+        return [];
+      });
 
-      // Add mock data for FIBA (4549) to exactly match qualifiers results
-      if (sportId === 'basketball') {
-        allMatches.push(...MOCK_FIBA_MATCHES);
-      }
+      const results = await Promise.all(fetchPromises);
+      const allMatches = results.flat();
 
       if (allMatches.length > 0) {
-        // Sort chronologically and deduplicate by event ID
-        const uniqueMatchesMap = new Map<string, RawMatch>();
-        allMatches.forEach(m => {
-          uniqueMatchesMap.set(m.id, m);
-        });
-        const uniqueMatches = Array.from(uniqueMatchesMap.values());
-
-        const sorted = uniqueMatches.sort((a, b) => {
+        // Sort chronologically
+        const sorted = allMatches.sort((a: any, b: any) => {
           return parseMatchDate(a.local_date, a.stadium_id).getTime() - parseMatchDate(b.local_date, b.stadium_id).getTime();
         });
 
@@ -2377,9 +1797,17 @@ export default function SportsBettingGame() {
 
         localStorage.setItem(cacheKey, JSON.stringify(sorted));
         localStorage.setItem(cacheTimeKey, now.getTime().toString());
+      } else {
+        // If API returns no games, fallback to previous cached ones if present
+        if (cachedGames) {
+          setSportMatches(prev => ({
+            ...prev,
+            [sportId]: JSON.parse(cachedGames)
+          }));
+        }
       }
     } catch (err) {
-      console.error(`Failed to fetch and process SportsDB matches for ${sportId}:`, err);
+      console.error(`Failed to fetch generic ESPN matches for ${sportId}:`, err);
     }
   };
 
@@ -2724,55 +2152,8 @@ export default function SportsBettingGame() {
       let finalGame = bet.match;
       const isEspn = bet.match.id.startsWith('espn-');
       const isSimulated = bet.match.id.startsWith('sim-');
-      const isSportsDb = bet.match.id.startsWith('sdb-');
 
-      if (isSportsDb) {
-        const parts = bet.match.id.split('-');
-        const eventId = parts[2];
-        if (eventId) {
-          try {
-            const res = await fetch(`/api/sports/sportsdb?event=${eventId}`, { cache: 'no-store' });
-            if (res.ok) {
-              const data = await res.json();
-              if (data.events && Array.isArray(data.events) && data.events.length > 0) {
-                const ev = data.events[0];
-                finalGame = {
-                  ...finalGame,
-                  home_score: ev.intHomeScore !== null && ev.intHomeScore !== undefined ? ev.intHomeScore.toString() : finalGame.home_score,
-                  away_score: ev.intAwayScore !== null && ev.intAwayScore !== undefined ? ev.intAwayScore.toString() : finalGame.away_score,
-                  finished: 'TRUE',
-                  time_elapsed: 'finished'
-                };
-              }
-            }
-          } catch (apiErr) {
-            console.error('Failed to fetch real score from SportsDB lookupevent:', apiErr);
-          }
-        }
-        
-        // Update local storage cache to keep scores persisted
-        const sportId = parts[1] || 'basketball';
-        const cached = localStorage.getItem(`rm_sports_sdb_cache_${sportId}`);
-        if (cached) {
-          const mapped = JSON.parse(cached) as RawMatch[];
-          const updated = mapped.map(m => m.id === bet.match.id ? finalGame : m);
-          localStorage.setItem(`rm_sports_sdb_cache_${sportId}`, JSON.stringify(updated));
-        }
-      } else if (!isEspn && !isSimulated) {
-        // Re-fetch matches to get the absolute live result (disable browser/CDN caching)
-        const timestamp = Date.now();
-        const gamesRes = await fetch(`/api/sports/games?t=${timestamp}`, { cache: 'no-store' });
-        
-        if (gamesRes.ok) {
-          const gData = await gamesRes.json();
-          if (gData.games && Array.isArray(gData.games)) {
-            const apiMatch = gData.games.find((g: any) => g.id.toString() === bet.match.id.toString());
-            if (apiMatch) {
-              finalGame = apiMatch;
-            }
-          }
-        }
-      } else if (isEspn) {
+      if (isEspn) {
         const sportId = bet.match.id.split('-')[1];
         const eventId = bet.match.id.split('-')[2];
         if (sportId === 'nfl') {
@@ -2793,6 +2174,20 @@ export default function SportsBettingGame() {
               if (freshEvent) {
                 finalGame = mapEspnEventToMatch(freshEvent, sportId);
               }
+            }
+          }
+        }
+      } else if (!isSimulated) {
+        // Re-fetch matches to get the absolute live result (disable browser/CDN caching)
+        const timestamp = Date.now();
+        const gamesRes = await fetch(`/api/sports/games?t=${timestamp}`, { cache: 'no-store' });
+        
+        if (gamesRes.ok) {
+          const gData = await gamesRes.json();
+          if (gData.games && Array.isArray(gData.games)) {
+            const apiMatch = gData.games.find((g: any) => g.id.toString() === bet.match.id.toString());
+            if (apiMatch) {
+              finalGame = apiMatch;
             }
           }
         }
@@ -3061,6 +2456,12 @@ export default function SportsBettingGame() {
     // Hide matches that do not have 2 full teams (team ID '0' is TBD)
     if (match.home_team_id === '0' || match.away_team_id === '0' || !match.home_team_id || !match.away_team_id) {
       return false;
+    }
+
+    if (selectedLeague !== 'all') {
+      if (!match.id.startsWith(`espn-${selectedLeague}-`)) {
+        return false;
+      }
     }
 
     const home = getTeam(match.home_team_id, match, 'home');
@@ -3719,6 +3120,7 @@ export default function SportsBettingGame() {
                 key={sport.id}
                 onClick={() => {
                   setSelectedSport(sport.id);
+                  setSelectedLeague('all');
                   setSelectedMatch(null);
                   setSelectedOutcome(null);
                   playClick();
@@ -3736,6 +3138,40 @@ export default function SportsBettingGame() {
           })}
         </div>
       )}
+
+      {(() => {
+        const selectedSportConfig = SPORTS_CONFIGS.find(s => s.id === selectedSport);
+        if (selectedSportConfig && selectedSportConfig.leagues && selectedSportConfig.leagues.length > 1) {
+          return (
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 mt-1 scrollbar-thin">
+              <button
+                onClick={() => { setSelectedLeague('all'); playClick(); }}
+                className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border transition-all cursor-pointer ${
+                  selectedLeague === 'all'
+                    ? 'bg-blue-600 border-blue-500 text-white shadow-[0_0_10px_rgba(59,130,246,0.3)]'
+                    : 'bg-neutral-950/30 border-luxury-border/40 text-neutral-450 hover:text-white hover:border-blue-500/20'
+                }`}
+              >
+                {lang === 'vi' ? 'Tất cả' : 'All'}
+              </button>
+              {selectedSportConfig.leagues.map(league => (
+                <button
+                  key={league.id}
+                  onClick={() => { setSelectedLeague(league.id); playClick(); }}
+                  className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border transition-all cursor-pointer ${
+                    selectedLeague === league.id
+                      ? 'bg-blue-600 border-blue-500 text-white shadow-[0_0_10px_rgba(59,130,246,0.3)]'
+                      : 'bg-neutral-950/30 border-luxury-border/40 text-neutral-450 hover:text-white hover:border-blue-500/20'
+                  }`}
+                >
+                  {lang === 'vi' ? league.nameVi : league.name}
+                </button>
+              ))}
+            </div>
+          );
+        }
+        return null;
+      })()}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start font-sans">
         
@@ -3847,7 +3283,9 @@ export default function SportsBettingGame() {
                                     ? 'bg-blue-500/10 border-blue-500/30 text-blue-400'
                                     : 'bg-neutral-900 border-neutral-800 text-neutral-400'
                                 }`}>
-                                  {formatGroupLabel(match.group, lang)}
+                                  {match.id.startsWith('espn-') 
+                                    ? `${formatGroupLabel(match.group, lang)}, ${formatTime12h(matchDate)}` 
+                                    : formatGroupLabel(match.group, lang)}
                                 </span>
                                 {matchBetCount > 0 && (
                                   <span className="text-[9px] bg-blue-950/50 border border-blue-500/30 text-blue-400 font-black px-1.5 py-0.5 rounded-full">
