@@ -1496,6 +1496,155 @@ export default function SportsBettingGame() {
   // Stats
   const [stats, setStats] = useState({ totalBets: 0, wins: 0, losses: 0, profit: 0 });
 
+  const renderMyActiveBets = () => {
+    return (
+      <Card className="bg-[#0b0b0b] border-luxury-border rounded-3xl mt-4">
+        <CardHeader className="p-5 border-b border-luxury-border/60">
+          <CardTitle className="text-xs font-extrabold flex items-center gap-1.5 font-sans">
+            <Activity className="w-4 h-4 text-emerald-500 animate-pulse" />
+            {TRANSLATIONS[lang].myActiveBets} ({activeBets.length})
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="p-5 flex flex-col gap-3">
+          {activeBets.length === 0 ? (
+            <div className="py-8 text-center text-xs text-neutral-500 font-medium">
+              {TRANSLATIONS[lang].noRunningBets}
+            </div>
+          ) : (
+            activeBets.map((bet) => {
+              // Pull live match state from cached lists
+              const liveMatch = matchesList.find(m => m.id === bet.match.id)
+                || Object.values(sportMatches).flat().find(m => m.id === bet.match.id)
+                || bet.match;
+
+              const matchDate = parseMatchDate(liveMatch.local_date, liveMatch.stadium_id);
+              const matchEndDate = new Date(matchDate.getTime() + 90 * 60 * 1000);
+              const hasEnded = liveMatch.finished === 'TRUE' || (clientTime ? clientTime >= matchEndDate : false);
+              const isLive = !hasEnded && liveMatch.time_elapsed !== 'notstarted' && liveMatch.time_elapsed !== 'finished' && clientTime ? (clientTime >= matchDate && clientTime < matchEndDate) : false;
+
+              let timeLabel = '';
+              if (clientTime) {
+                if (isLive) {
+                  const mins = Math.floor((clientTime.getTime() - matchDate.getTime()) / (60 * 1000));
+                  timeLabel = lang === 'vi' ? `Phút ${mins}'` : `${mins}'`;
+                } else if (!hasEnded) {
+                  const diffMs = matchDate.getTime() - clientTime.getTime();
+                  const hours = Math.floor(diffMs / (3600 * 1000));
+                  const mins = Math.floor((diffMs % (3600 * 1000)) / (60 * 1000));
+                  timeLabel = hours > 0 
+                    ? (lang === 'vi' ? `Bắt đầu sau ${hours}g ${mins}ph` : `Starts in ${hours}h ${mins}m`) 
+                    : (lang === 'vi' ? `Bắt đầu sau ${mins}ph` : `Starts in ${mins}m`);
+                } else {
+                  timeLabel = TRANSLATIONS[lang].concluded;
+                }
+              }
+
+              const homeLabel = lang === 'vi' ? (TEAM_TRANSLATIONS[bet.homeTeam.name_en] || bet.homeTeam.name_en) : bet.homeTeam.name_en;
+              const awayLabel = lang === 'vi' ? (TEAM_TRANSLATIONS[bet.awayTeam.name_en] || bet.awayTeam.name_en) : bet.awayTeam.name_en;
+              
+              let predLabel = '';
+              if (bet.betType === 'correct_score_2h') {
+                predLabel = lang === 'vi' ? `Hiệp 2: ${bet.prediction}` : `2nd Half: ${bet.prediction}`;
+              } else if (bet.betType === 'red_card') {
+                predLabel = bet.prediction === 'yes' 
+                  ? (lang === 'vi' ? 'Có thẻ đỏ' : 'Red Card Yes') 
+                  : (lang === 'vi' ? 'Không thẻ đỏ' : 'Red Card No');
+              } else {
+                predLabel = bet.prediction === 'home' ? homeLabel
+                  : bet.prediction === 'away' ? awayLabel
+                  : TRANSLATIONS[lang].draw;
+              }
+
+              const liveHomeScore = parseInt(liveMatch.home_score) || 0;
+              const liveAwayScore = parseInt(liveMatch.away_score) || 0;
+              const isEarlyCashoutEligible = bet.betType === 'early_cashout' && isLive && (
+                (bet.prediction === 'home' && liveHomeScore - liveAwayScore >= 2) ||
+                (bet.prediction === 'away' && liveAwayScore - liveHomeScore >= 2)
+              );
+
+              const canSettle = hasEnded || isEarlyCashoutEligible;
+
+              return (
+                <div 
+                  key={bet.id} 
+                  className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 rounded-3xl bg-black/60 border border-luxury-border/60 gap-4"
+                >
+                  <div className="flex flex-col gap-1.5 flex-grow pr-2">
+                    <div className="flex items-center gap-2 flex-wrap text-[9px] font-bold text-neutral-500 uppercase tracking-wider font-mono">
+                      <span>{lang === 'vi' ? `Bảng ${liveMatch.group}` : `Group ${liveMatch.group}`}</span>
+                      <span className="text-neutral-700">•</span>
+                      <span>{lang === 'vi' ? `Trận #${liveMatch.id}` : `Match #${liveMatch.id}`}</span>
+                      {timeLabel && (
+                        <>
+                          <span className="text-neutral-700">•</span>
+                          <span className={`font-mono font-bold ${isLive ? 'text-amber-400' : 'text-neutral-400'}`}>{timeLabel}</span>
+                        </>
+                      )}
+                      {isLive && (
+                        <>
+                          <span className="text-neutral-700">•</span>
+                          <span className="flex items-center gap-1 bg-red-500/10 border border-red-500/30 text-red-400 px-1.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider animate-pulse">
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
+                            {lang === 'vi' ? 'Trực Tiếp' : 'LIVE'}
+                          </span>
+                          <span className="text-neutral-700">•</span>
+                          <span className="text-amber-400 font-black animate-pulse">({liveHomeScore} - {liveAwayScore})</span>
+                        </>
+                      )}
+                    </div>
+                    
+                    <div className="text-xs font-black text-white flex items-center gap-2 mt-1">
+                      <span>{homeLabel}</span>
+                      <span className="text-neutral-600 font-bold">vs</span>
+                      <span>{awayLabel}</span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 mt-1.5">
+                      <span className="text-[9px] bg-neutral-900 border border-neutral-800 text-neutral-400 font-bold px-2.5 py-0.5 rounded-full">
+                        {TRANSLATIONS[lang].staked}: ${bet.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      </span>
+                      <span className="text-[9px] bg-blue-950/40 border border-blue-500/20 text-blue-400 font-black px-2.5 py-0.5 rounded-full uppercase">
+                        {TRANSLATIONS[lang].betLabel}: {predLabel} ({bet.odds}x)
+                      </span>
+                      {bet.betType && (
+                        <span className="text-[9px] bg-indigo-950/40 border border-indigo-500/20 text-indigo-400 font-black px-2.5 py-0.5 rounded-full uppercase">
+                          {bet.betType === 'early_cashout' ? 'Early Cashout' : bet.betType === 'red_card' ? 'Red Card' : bet.betType === 'correct_score_2h' ? '2H Score' : '1X2'}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Settle Action Button */}
+                  <div className="shrink-0 flex items-center font-sans">
+                    <Button
+                      variant={canSettle ? 'gold' : 'dark'}
+                      size="sm"
+                      onClick={() => handleSettleBet(bet)}
+                      disabled={!canSettle}
+                      className={`font-extrabold text-[10px] px-5 py-2.5 rounded-full transition-all ${
+                        isEarlyCashoutEligible
+                          ? 'bg-gradient-to-r from-emerald-500 to-green-600 border-none hover:from-emerald-400 hover:to-green-500 text-white hover:scale-105 shadow-md shadow-emerald-950/40 animate-pulse'
+                          : hasEnded 
+                          ? 'bg-gradient-to-r from-blue-600 to-indigo-700 border-none hover:from-blue-500 hover:to-indigo-600 text-white hover:scale-105 shadow-md shadow-blue-950/30' 
+                          : 'opacity-55'
+                      }`}
+                    >
+                      {isEarlyCashoutEligible 
+                        ? (lang === 'vi' ? 'Nhận Tiền Sớm 💰' : 'Early Cashout 💰')
+                        : hasEnded 
+                        ? TRANSLATIONS[lang].settleBetBtn 
+                        : TRANSLATIONS[lang].awaitingConclusion}
+                    </Button>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
   // Team Lookup helper with match context and side fallback to prevent "TBD Team 0"
   const getTeam = (id: string, matchContext?: RawMatch, side?: 'home' | 'away'): Team => {
     const foundTeam = teamsList.find(t => t.id === id);
@@ -3342,372 +3491,224 @@ export default function SportsBettingGame() {
             </div>
           </div>
 
+          {!selectedMatch && renderMyActiveBets()}
+
           {/* Bet Slip */}
-          <Card className="bg-[#0b0b0b] border-luxury-border rounded-3xl relative">
-            <CardHeader className="p-5 border-b border-luxury-border/60">
-              <CardTitle className="text-sm font-extrabold flex items-center justify-between w-full">
-                <div className="flex items-center gap-2">
-                  <Play className="w-4 h-4 text-emerald-500" />
-                  {TRANSLATIONS[lang].betSlip}
-                </div>
-                
-                {/* Custom tutorial "?" button */}
-                <div className="relative group/tutorial">
-                  <button className="w-5 h-5 rounded-full bg-neutral-900 border border-luxury-border text-xs font-black text-neutral-450 hover:text-white hover:border-blue-500 flex items-center justify-center cursor-pointer transition-all">
-                    ?
-                  </button>
-                  
-                  {/* Custom tooltip box */}
-                  <div className="absolute right-0 top-7 z-50 w-72 p-4 rounded-2xl bg-[#0b0b0b] border border-blue-500/35 shadow-[0_10px_30px_rgba(59,130,246,0.25)] text-[10px] text-neutral-400 font-bold hidden group-hover/tutorial:block animate-fade-in pointer-events-none font-sans">
-                    <div className="flex flex-col gap-2 leading-relaxed normal-case">
-                      <span className="text-white font-extrabold uppercase tracking-wider text-[11px] flex items-center gap-1.5 font-sans">
-                        <Sparkles className="w-3.5 h-3.5 text-blue-500 animate-pulse" />
-                        {lang === 'vi' ? 'Hướng dẫn cá cược' : 'How to Place Bets'}
-                      </span>
-                      <ol className="list-decimal list-inside flex flex-col gap-1.5 pl-0.5 font-medium text-left">
-                        <li>{lang === 'vi' ? 'Chọn bất kỳ trận đấu nào từ Lịch thi đấu ở trên.' : 'Select any matchup from the Schedule above.'}</li>
-                        <li>{lang === 'vi' ? 'Chọn tỷ lệ cược (1X2, Quyết toán sớm, Thẻ đỏ, hoặc Tỷ số hiệp 2).' : 'Select odds (1X2, Early Cashout, Red Card, or 2nd Half Score).'}</li>
-                        <li>{lang === 'vi' ? 'Nhập số tiền cược (Stake Amount) trong Phiếu cược.' : 'Enter your Stake Amount in the Bet Slip.'}</li>
-                        <li>{lang === 'vi' ? 'Bấm "Đặt cược" để xác nhận.' : 'Click "Place Bet" to lock in your wager.'}</li>
-                        <li>{lang === 'vi' ? 'Theo dõi tại "Cược đang chạy" & quyết toán khi kết thúc!' : 'Track in "Active Bets" & settle once completed!'}</li>
-                      </ol>
+          {selectedMatch && (
+            <>
+              <Card className="bg-[#0b0b0b] border-luxury-border rounded-3xl relative">
+                <CardHeader className="p-5 border-b border-luxury-border/60">
+                  <CardTitle className="text-sm font-extrabold flex items-center justify-between w-full">
+                    <div className="flex items-center gap-2">
+                      <Play className="w-4 h-4 text-emerald-500" />
+                      {TRANSLATIONS[lang].betSlip}
                     </div>
-                  </div>
-                </div>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-5 flex flex-col gap-5">
-              
-              {selectedMatch ? (() => {
-                const home = getTeam(selectedMatch.home_team_id, selectedMatch, 'home');
-                const away = getTeam(selectedMatch.away_team_id, selectedMatch, 'away');
-                const betsOnMatch = activeBets.filter(b => b.match.id === selectedMatch.id).length;
-
-                const shortenCountryName = (name: string): string => {
-                  if (!name) return '';
-                  const clean = name.trim();
-                  // Explicit overrides
-                  if (clean === 'Democratic Republic of the Congo' || clean === 'Cộng hòa Dân chủ Congo' || clean === 'DR Congo' || clean === 'Congo DR' || clean === 'Congo') {
-                    return 'DROTC';
-                  }
-                  if (clean === 'Bosnia and Herzegovina' || clean === 'Bosnia và Herzegovina' || clean === 'Bosnia-Herzegovina' || clean === 'Bosnia') {
-                    return 'BAH';
-                  }
-                  // General fallback for long names
-                  const words = clean.split(/[\s-]+/);
-                  if (clean.length > 15 || words.length >= 3) {
-                    return words.map(w => w.charAt(0)).join('').toUpperCase();
-                  }
-                  return clean;
-                };
-
-                const homeLabelRaw = lang === 'vi' ? (TEAM_TRANSLATIONS[home.name_en] || home.name_en) : home.name_en;
-                const awayLabelRaw = lang === 'vi' ? (TEAM_TRANSLATIONS[away.name_en] || away.name_en) : away.name_en;
-
-                const homeLabel = shortenCountryName(homeLabelRaw);
-                const awayLabel = shortenCountryName(awayLabelRaw);
-
-                return (
-                  <>
-                    {/* Bet placed confirmation banner */}
-                    {betPlacedNotice && (
-                      <div className="bg-emerald-950/30 border border-emerald-500/30 rounded-2xl px-4 py-2.5 flex items-center gap-2 animate-fade-in">
-                        <span className="text-emerald-400 text-xs font-black shrink-0">✓</span>
-                        <span className="text-emerald-300 text-[10px] font-bold leading-snug">{betPlacedNotice}</span>
-                      </div>
-                    )}
-
-                    {/* Selected fixture details */}
-                    <div className="bg-black/60 rounded-2xl p-4 border border-luxury-border/40 flex flex-col gap-2 font-sans">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[9px] text-neutral-500 font-bold uppercase tracking-wider block">
-                          {lang === 'vi' ? `Trận Chọn #${selectedMatch.id}` : `Selected Match #${selectedMatch.id}`}
-                        </span>
-                        {betsOnMatch > 0 && (
-                          <span className="text-[9px] bg-blue-950/50 border border-blue-500/30 text-blue-400 font-black px-2 py-0.5 rounded-full">
-                            {betsOnMatch} {lang === 'vi' ? 'cược đang chạy' : `active bet${betsOnMatch > 1 ? 's' : ''}`}
+                    
+                    {/* Custom tutorial "?" button */}
+                    <div className="relative group/tutorial">
+                      <button className="w-5 h-5 rounded-full bg-neutral-900 border border-luxury-border text-xs font-black text-neutral-450 hover:text-white hover:border-blue-500 flex items-center justify-center cursor-pointer transition-all">
+                        ?
+                      </button>
+                      
+                      {/* Custom tooltip box */}
+                      <div className="absolute right-0 top-7 z-50 w-72 p-4 rounded-2xl bg-[#0b0b0b] border border-blue-500/35 shadow-[0_10px_30px_rgba(59,130,246,0.25)] text-[10px] text-neutral-400 font-bold hidden group-hover/tutorial:block animate-fade-in pointer-events-none font-sans">
+                        <div className="flex flex-col gap-2 leading-relaxed normal-case">
+                          <span className="text-white font-extrabold uppercase tracking-wider text-[11px] flex items-center gap-1.5 font-sans">
+                            <Sparkles className="w-3.5 h-3.5 text-blue-500 animate-pulse" />
+                            {lang === 'vi' ? 'Hướng dẫn cá cược' : 'How to Place Bets'}
                           </span>
-                        )}
-                      </div>
-                      <div className="text-xs font-black text-white flex items-center justify-between">
-                        <span>{homeLabel}</span>
-                        <span className="text-neutral-600 font-bold">vs</span>
-                        <span>{awayLabel}</span>
-                      </div>
-                    </div>
-
-                    {/* Markets Panel */}
-                    <div className="flex flex-col gap-3 my-2">
-                      <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">
-                        {lang === 'vi' ? 'Bảng tỷ lệ cược' : 'Markets Panel'}
-                      </span>
-
-                      {renderMarkets()}
-                    </div>
-
-                    {/* Selection details receipt */}
-                    {selectedOutcome ? (
-                      <div className="bg-blue-950/15 border border-blue-500/20 rounded-2xl p-4 flex flex-col gap-2 animate-fade-in font-sans">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[9px] bg-blue-500/15 text-blue-400 font-black px-2 py-0.5 rounded uppercase tracking-wider font-mono">
-                            {selectedSlipMarketLabel || '1X2'}
-                          </span>
-                          <span className="text-blue-400 font-black text-xs font-mono">{selectedSlipOdds.toFixed(2)}x</span>
+                          <ol className="list-decimal list-inside flex flex-col gap-1.5 pl-0.5 font-medium text-left">
+                            <li>{lang === 'vi' ? 'Chọn bất kỳ trận đấu nào từ Lịch thi đấu ở trên.' : 'Select any matchup from the Schedule above.'}</li>
+                            <li>{lang === 'vi' ? 'Chọn tỷ lệ cược (1X2, Quyết toán sớm, Thẻ đỏ, hoặc Tỷ số hiệp 2).' : 'Select odds (1X2, Early Cashout, Red Card, or 2nd Half Score).'}</li>
+                            <li>{lang === 'vi' ? 'Nhập số tiền cược (Stake Amount) trong Phiếu cược.' : 'Enter your Stake Amount in the Bet Slip.'}</li>
+                            <li>{lang === 'vi' ? 'Bấm "Đặt cược" để xác nhận.' : 'Click "Place Bet" to lock in your wager.'}</li>
+                            <li>{lang === 'vi' ? 'Theo dõi tại "Cược đang chạy" & quyết toán khi kết thúc!' : 'Track in "Active Bets" & settle once completed!'}</li>
+                          </ol>
                         </div>
-                        <span className="text-xs font-bold text-white mt-1">
-                          {selectedSlipPredictionLabel || (
-                            selectedOutcome === 'home' ? home.name_en
-                            : selectedOutcome === 'away' ? away.name_en
-                            : 'Draw'
-                          )}
-                        </span>
                       </div>
-                    ) : (
-                      <div className="bg-neutral-950/40 border border-luxury-border/50 rounded-2xl p-5 text-center text-[10px] text-neutral-500 font-medium">
-                        {lang === 'vi' ? 'Chọn một tỷ lệ cược bất kỳ từ bảng bên trái để đặt cược' : 'Select any odds from the markets panel to place a bet.'}
-                      </div>
-                    )}
+                    </div>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-5 flex flex-col gap-5">
+                  {(() => {
+                    const home = getTeam(selectedMatch.home_team_id, selectedMatch, 'home');
+                    const away = getTeam(selectedMatch.away_team_id, selectedMatch, 'away');
+                    const betsOnMatch = activeBets.filter(b => b.match.id === selectedMatch.id).length;
 
-                    {selectedOutcome && (
+                    const shortenCountryName = (name: string): string => {
+                      if (!name) return '';
+                      const clean = name.trim();
+                      if (clean === 'Democratic Republic of the Congo' || clean === 'Cộng hòa Dân chủ Congo' || clean === 'DR Congo' || clean === 'Congo DR' || clean === 'Congo') {
+                        return 'DROTC';
+                      }
+                      if (clean === 'Bosnia and Herzegovina' || clean === 'Bosnia và Herzegovina' || clean === 'Bosnia-Herzegovina' || clean === 'Bosnia') {
+                        return 'BAH';
+                      }
+                      const words = clean.split(/[\s-]+/);
+                      if (clean.length > 15 || words.length >= 3) {
+                        return words.map(w => w.charAt(0)).join('').toUpperCase();
+                      }
+                      return clean;
+                    };
+
+                    const homeLabelRaw = lang === 'vi' ? (TEAM_TRANSLATIONS[home.name_en] || home.name_en) : home.name_en;
+                    const awayLabelRaw = lang === 'vi' ? (TEAM_TRANSLATIONS[away.name_en] || away.name_en) : away.name_en;
+
+                    const homeLabel = shortenCountryName(homeLabelRaw);
+                    const awayLabel = shortenCountryName(awayLabelRaw);
+
+                    return (
                       <>
-                        {/* Stake Amount Input */}
-                        <div className="flex flex-col gap-2 mt-2">
+                        {/* Bet placed confirmation banner */}
+                        {betPlacedNotice && (
+                          <div className="bg-emerald-950/30 border border-emerald-500/30 rounded-2xl px-4 py-2.5 flex items-center gap-2 animate-fade-in">
+                            <span className="text-emerald-400 text-xs font-black shrink-0">✓</span>
+                            <span className="text-emerald-300 text-[10px] font-bold leading-snug">{betPlacedNotice}</span>
+                          </div>
+                        )}
+
+                        {/* Selected fixture details */}
+                        <div className="bg-black/60 rounded-2xl p-4 border border-luxury-border/40 flex flex-col gap-2 font-sans">
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wide">
-                              {lang === 'vi' ? 'Tiền cược' : 'Stake Amount'}
+                            <span className="text-[9px] text-neutral-500 font-bold uppercase tracking-wider block">
+                              {lang === 'vi' ? `Trận Chọn #${selectedMatch.id}` : `Selected Match #${selectedMatch.id}`}
                             </span>
-                            <span className="text-[10px] text-neutral-500 font-bold">
-                              {lang === 'vi' ? 'Tối thiểu' : 'Min Stake'}: $0.01
+                            {betsOnMatch > 0 && (
+                              <span className="text-[9px] bg-blue-950/50 border border-blue-500/30 text-blue-400 font-black px-2 py-0.5 rounded-full">
+                                {betsOnMatch} {lang === 'vi' ? 'cược đang chạy' : `active bet${betsOnMatch > 1 ? 's' : ''}`}
+                              </span>
+                            )}
+                          </div>
+                          <div className="text-xs font-black text-white flex items-center justify-between">
+                            <span>{homeLabel}</span>
+                            <span className="text-neutral-600 font-bold">vs</span>
+                            <span>{awayLabel}</span>
+                          </div>
+                        </div>
+
+                        {/* Markets Panel */}
+                        <div className="flex flex-col gap-3 my-2">
+                          <span className="text-[10px] text-neutral-555 text-neutral-500 font-bold uppercase tracking-wider">
+                            {lang === 'vi' ? 'Bảng tỷ lệ cược' : 'Markets Panel'}
+                          </span>
+
+                          {renderMarkets()}
+                        </div>
+
+                        {/* Selection details receipt */}
+                        {selectedOutcome ? (
+                          <div className="bg-blue-950/15 border border-blue-500/20 rounded-2xl p-4 flex flex-col gap-2 animate-fade-in font-sans">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[9px] bg-blue-500/15 text-blue-400 font-black px-2 py-0.5 rounded uppercase tracking-wider font-mono">
+                                {selectedSlipMarketLabel || '1X2'}
+                              </span>
+                              <span className="text-blue-400 font-black text-xs font-mono">{selectedSlipOdds.toFixed(2)}x</span>
+                            </div>
+                            <span className="text-xs font-bold text-white mt-1">
+                              {selectedSlipPredictionLabel || (
+                                selectedOutcome === 'home' ? home.name_en
+                                : selectedOutcome === 'away' ? away.name_en
+                                : 'Draw'
+                              )}
                             </span>
                           </div>
-                          
-                          <div className="relative">
-                            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-black text-neutral-505 text-neutral-400">$</span>
-                            <input
-                              type="number"
-                              min="0.01"
-                              step="any"
-                              value={betAmount === 0 ? '' : betAmount}
-                              onChange={(e) => {
-                                const val = parseFloat(e.target.value);
-                                setBetAmount(isNaN(val) ? 0 : val);
-                              }}
-                              placeholder="0.00"
-                              className="w-full bg-neutral-950 border border-luxury-border/70 hover:border-blue-500/20 text-neutral-100 rounded-full pl-8 pr-16 py-3 text-xs font-black focus:outline-none focus:border-blue-500 focus:shadow-[0_0_15px_rgba(59,130,246,0.15)] transition-all font-mono"
-                            />
-                            <button
-                              onClick={() => { setBetAmount(Math.round(credits * 100) / 100); playClick(); }}
-                              className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[9px] font-black uppercase text-blue-500 hover:text-blue-400 bg-blue-500/10 hover:bg-blue-500/15 border border-blue-500/25 px-2.5 py-1 rounded-full cursor-pointer transition-all"
+                        ) : (
+                          <div className="bg-neutral-950/40 border border-luxury-border/50 rounded-2xl p-5 text-center text-[10px] text-neutral-500 font-medium">
+                            {lang === 'vi' ? 'Chọn một tỷ lệ cược bất kỳ từ bảng bên trái để đặt cược' : 'Select any odds from the markets panel to place a bet.'}
+                          </div>
+                        )}
+
+                        {selectedOutcome && (
+                          <>
+                            {/* Stake Amount Input */}
+                            <div className="flex flex-col gap-2 mt-2">
+                              <div className="flex items-center justify-between">
+                                <span className="text-[10px] text-neutral-555 text-neutral-500 font-bold uppercase tracking-wide">
+                                  {lang === 'vi' ? 'Tiền cược' : 'Stake Amount'}
+                                </span>
+                                <span className="text-[10px] text-neutral-555 text-neutral-500 font-bold">
+                                  {lang === 'vi' ? 'Tối thiểu' : 'Min Stake'}: $0.01
+                                </span>
+                              </div>
+                              
+                              <div className="relative">
+                                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-xs font-black text-neutral-400">$</span>
+                                <input
+                                  type="number"
+                                  min="0.01"
+                                  step="any"
+                                  value={betAmount === 0 ? '' : betAmount}
+                                  onChange={(e) => {
+                                    const val = parseFloat(e.target.value);
+                                    setBetAmount(isNaN(val) ? 0 : val);
+                                  }}
+                                  placeholder="0.00"
+                                  className="w-full bg-neutral-950 border border-luxury-border/70 hover:border-blue-500/20 text-neutral-100 rounded-full pl-8 pr-16 py-3 text-xs font-black focus:outline-none focus:border-blue-500 focus:shadow-[0_0_15px_rgba(59,130,246,0.15)] transition-all font-mono"
+                                />
+                                <button
+                                  onClick={() => { setBetAmount(Math.round(credits * 100) / 100); playClick(); }}
+                                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[9px] font-black uppercase text-blue-500 hover:text-blue-400 bg-blue-500/10 hover:bg-blue-500/15 border border-blue-500/25 px-2.5 py-1 rounded-full cursor-pointer transition-all"
+                                >
+                                  Max
+                                </button>
+                              </div>
+
+                              {/* Quick stake multipliers */}
+                              <div className="grid grid-cols-4 gap-1.5 mt-1 font-mono">
+                                {[10, 50, 100, 500].map((amt) => (
+                                  <button
+                                    key={amt}
+                                    onClick={() => { setBetAmount(amt); playClick(); }}
+                                    className={`py-1.5 rounded-full border text-center text-[10px] font-black transition-all cursor-pointer ${
+                                      betAmount === amt
+                                        ? 'bg-blue-950/20 border-blue-500 text-blue-400'
+                                        : 'bg-black/35 border-luxury-border/40 text-neutral-550 hover:text-white'
+                                    }`}
+                                  >
+                                    +${amt}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Bet slip summary */}
+                            <div className="bg-neutral-950/40 border border-luxury-border/40 rounded-2xl p-4 flex flex-col gap-2 text-xs font-bold font-sans mt-2">
+                              <div className="flex justify-between items-center">
+                                <span className="text-neutral-500 font-medium">{lang === 'vi' ? 'Tiền thắng tiềm năng' : 'Potential Payout'}</span>
+                                <span className="text-emerald-500 font-black font-mono">
+                                  ${(betAmount * selectedSlipOdds).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                </span>
+                              </div>
+                              <div className="flex justify-between items-center text-[10px]">
+                                <span className="text-neutral-600 font-medium">{lang === 'vi' ? 'Phí giao dịch' : 'Fee'}</span>
+                                <span className="text-neutral-555 text-neutral-500 font-mono">$0.00</span>
+                              </div>
+                            </div>
+
+                            {/* Place Bet Action Button */}
+                            <Button
+                              variant="gold"
+                              onClick={handlePlaceBet}
+                              className="w-full py-3.5 rounded-full text-xs font-black tracking-wider uppercase bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 text-white border-none hover:scale-103 active:scale-97 shadow-lg shadow-blue-950/30 transition-all cursor-pointer mt-2"
                             >
-                              Max
-                            </button>
-                          </div>
-
-                          {/* Quick stake multipliers */}
-                          <div className="grid grid-cols-4 gap-1.5 mt-1 font-mono">
-                            {[10, 50, 100, 500].map((amt) => (
-                              <button
-                                key={amt}
-                                onClick={() => { setBetAmount(amt); playClick(); }}
-                                className={`py-1.5 rounded-full border text-center text-[10px] font-black transition-all cursor-pointer ${
-                                  betAmount === amt
-                                    ? 'bg-blue-950/20 border-blue-500 text-blue-400'
-                                    : 'bg-black/35 border-luxury-border/40 text-neutral-550 hover:text-white'
-                                }`}
-                              >
-                                +${amt}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Bet slip summary */}
-                        <div className="bg-neutral-950/40 border border-luxury-border/40 rounded-2xl p-4 flex flex-col gap-2 text-xs font-bold font-sans mt-2">
-                          <div className="flex justify-between items-center">
-                            <span className="text-neutral-500 font-medium">{lang === 'vi' ? 'Tiền thắng tiềm năng' : 'Potential Payout'}</span>
-                            <span className="text-emerald-500 font-black font-mono">
-                              ${(betAmount * selectedSlipOdds).toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                            </span>
-                          </div>
-                          <div className="flex justify-between items-center text-[10px]">
-                            <span className="text-neutral-600 font-medium">{lang === 'vi' ? 'Phí giao dịch' : 'Fee'}</span>
-                            <span className="text-neutral-500 font-mono">$0.00</span>
-                          </div>
-                        </div>
-
-                        {/* Place Bet Action Button */}
-                        <Button
-                          variant="gold"
-                          onClick={handlePlaceBet}
-                          className="w-full py-3.5 rounded-full text-xs font-black tracking-wider uppercase bg-gradient-to-r from-blue-600 to-indigo-700 hover:from-blue-500 hover:to-indigo-600 text-white border-none hover:scale-103 active:scale-97 shadow-lg shadow-blue-950/30 transition-all cursor-pointer mt-2"
-                        >
-                          {TRANSLATIONS[lang].placeBet} (${betAmount.toLocaleString()})
-                        </Button>
+                              {TRANSLATIONS[lang].placeBet} (${betAmount.toLocaleString()})
+                            </Button>
+                          </>
+                        )}
                       </>
-                    )}
-                  </>
-                );
-              })() : (
-                <div className="py-12 text-center text-xs text-neutral-500 flex flex-col items-center gap-2">
-                  <AlertCircle className="w-5 h-5 text-neutral-600" />
-                  <span>{TRANSLATIONS[lang].selectMatchMsg}</span>
-                </div>
-              )}
-
-            </CardContent>
-          </Card>
+                    );
+                  })()}
+                </CardContent>
+              </Card>
+              {renderMyActiveBets()}
+            </>
+          )}
 
         </div>
 
-        {/* Right column: Bet Slip & Stats */}
+        {/* Right column: Stats */}
         <div className="flex flex-col gap-6">
           
-          {/* My Active Bets Ledger */}
-          <Card className="bg-[#0b0b0b] border-luxury-border rounded-3xl">
-            <CardHeader className="p-5 border-b border-luxury-border/60">
-              <CardTitle className="text-xs font-extrabold flex items-center gap-1.5 font-sans">
-                <Activity className="w-4 h-4 text-emerald-500 animate-pulse" />
-                {TRANSLATIONS[lang].myActiveBets} ({activeBets.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-5 flex flex-col gap-3">
-              {activeBets.length === 0 ? (
-                <div className="py-8 text-center text-xs text-neutral-500 font-medium">
-                  {TRANSLATIONS[lang].noRunningBets}
-                </div>
-              ) : (
-                activeBets.map((bet) => {
-                  // Pull live match state from cached lists
-                  const liveMatch = matchesList.find(m => m.id === bet.match.id)
-                    || Object.values(sportMatches).flat().find(m => m.id === bet.match.id)
-                    || bet.match;
-
-                  const matchDate = parseMatchDate(liveMatch.local_date, liveMatch.stadium_id);
-                  const matchEndDate = new Date(matchDate.getTime() + 90 * 60 * 1000);
-                  const hasEnded = liveMatch.finished === 'TRUE' || (clientTime ? clientTime >= matchEndDate : false);
-                  const isLive = !hasEnded && liveMatch.time_elapsed !== 'notstarted' && liveMatch.time_elapsed !== 'finished' && clientTime ? (clientTime >= matchDate && clientTime < matchEndDate) : false;
-
-                  let timeLabel = '';
-                  if (clientTime) {
-                    if (isLive) {
-                      const mins = Math.floor((clientTime.getTime() - matchDate.getTime()) / (60 * 1000));
-                      timeLabel = lang === 'vi' ? `Phút ${mins}'` : `${mins}'`;
-                    } else if (!hasEnded) {
-                      const diffMs = matchDate.getTime() - clientTime.getTime();
-                      const hours = Math.floor(diffMs / (3600 * 1000));
-                      const mins = Math.floor((diffMs % (3600 * 1000)) / (60 * 1000));
-                      timeLabel = hours > 0 
-                        ? (lang === 'vi' ? `Bắt đầu sau ${hours}g ${mins}ph` : `Starts in ${hours}h ${mins}m`) 
-                        : (lang === 'vi' ? `Bắt đầu sau ${mins}ph` : `Starts in ${mins}m`);
-                    } else {
-                      timeLabel = TRANSLATIONS[lang].concluded;
-                    }
-                  }
-
-                  const homeLabel = lang === 'vi' ? (TEAM_TRANSLATIONS[bet.homeTeam.name_en] || bet.homeTeam.name_en) : bet.homeTeam.name_en;
-                  const awayLabel = lang === 'vi' ? (TEAM_TRANSLATIONS[bet.awayTeam.name_en] || bet.awayTeam.name_en) : bet.awayTeam.name_en;
-                  
-                  let predLabel = '';
-                  if (bet.betType === 'correct_score_2h') {
-                    predLabel = lang === 'vi' ? `Hiệp 2: ${bet.prediction}` : `2nd Half: ${bet.prediction}`;
-                  } else if (bet.betType === 'red_card') {
-                    predLabel = bet.prediction === 'yes' 
-                      ? (lang === 'vi' ? 'Có thẻ đỏ' : 'Red Card Yes') 
-                      : (lang === 'vi' ? 'Không thẻ đỏ' : 'Red Card No');
-                  } else {
-                    predLabel = bet.prediction === 'home' ? homeLabel
-                      : bet.prediction === 'away' ? awayLabel
-                      : TRANSLATIONS[lang].draw;
-                  }
-
-                  const liveHomeScore = parseInt(liveMatch.home_score) || 0;
-                  const liveAwayScore = parseInt(liveMatch.away_score) || 0;
-                  const isEarlyCashoutEligible = bet.betType === 'early_cashout' && isLive && (
-                    (bet.prediction === 'home' && liveHomeScore - liveAwayScore >= 2) ||
-                    (bet.prediction === 'away' && liveAwayScore - liveHomeScore >= 2)
-                  );
-
-                  const canSettle = hasEnded || isEarlyCashoutEligible;
-
-                  return (
-                    <div 
-                      key={bet.id} 
-                      className="flex flex-col sm:flex-row sm:items-center sm:justify-between p-4 rounded-3xl bg-black/60 border border-luxury-border/60 gap-4"
-                    >
-                      <div className="flex flex-col gap-1.5">
-                        <div className="flex items-center gap-2 flex-wrap text-[9px] font-bold text-neutral-500 uppercase tracking-wider font-mono">
-                          <span>{lang === 'vi' ? `Bảng ${liveMatch.group}` : `Group ${liveMatch.group}`}</span>
-                          <span className="text-neutral-700">•</span>
-                          <span>{lang === 'vi' ? `Trận #${liveMatch.id}` : `Match #${liveMatch.id}`}</span>
-                          {timeLabel && (
-                            <>
-                              <span className="text-neutral-700">•</span>
-                              <span className={`font-mono font-bold ${isLive ? 'text-amber-400' : 'text-neutral-400'}`}>{timeLabel}</span>
-                            </>
-                          )}
-                          {isLive && (
-                            <>
-                              <span className="text-neutral-700">•</span>
-                              <span className="flex items-center gap-1 bg-red-500/10 border border-red-500/30 text-red-400 px-1.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider animate-pulse">
-                                <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping" />
-                                {lang === 'vi' ? 'Trực Tiếp' : 'LIVE'}
-                              </span>
-                              <span className="text-neutral-700">•</span>
-                              <span className="text-amber-400 font-black animate-pulse">({liveHomeScore} - {liveAwayScore})</span>
-                            </>
-                          )}
-                        </div>
-                        
-                        <div className="text-xs font-black text-white flex items-center gap-2">
-                          <span>{homeLabel}</span>
-                          <span className="text-neutral-600 font-bold">vs</span>
-                          <span>{awayLabel}</span>
-                        </div>
-
-                        <div className="flex flex-wrap gap-2 mt-1.5">
-                          <span className="text-[9px] bg-neutral-900 border border-neutral-800 text-neutral-400 font-bold px-2.5 py-0.5 rounded-full">
-                            {TRANSLATIONS[lang].staked}: ${bet.amount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                          </span>
-                          <span className="text-[9px] bg-blue-950/40 border border-blue-500/20 text-blue-400 font-black px-2.5 py-0.5 rounded-full uppercase">
-                            {TRANSLATIONS[lang].betLabel}: {predLabel} ({bet.odds}x)
-                          </span>
-                          {bet.betType && (
-                            <span className="text-[9px] bg-indigo-950/40 border border-indigo-500/20 text-indigo-405 text-indigo-400 font-black px-2.5 py-0.5 rounded-full uppercase">
-                              {bet.betType === 'early_cashout' ? 'Early Cashout' : bet.betType === 'red_card' ? 'Red Card' : bet.betType === 'correct_score_2h' ? '2H Score' : '1X2'}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Settle Action Button */}
-                      <div className="shrink-0 flex items-center font-sans">
-                        <Button
-                          variant={canSettle ? 'gold' : 'dark'}
-                          size="sm"
-                          onClick={() => handleSettleBet(bet)}
-                          disabled={!canSettle}
-                          className={`font-extrabold text-[10px] px-5 py-2.5 rounded-full transition-all ${
-                            isEarlyCashoutEligible
-                              ? 'bg-gradient-to-r from-emerald-500 to-green-600 border-none hover:from-emerald-400 hover:to-green-500 text-white hover:scale-105 shadow-md shadow-emerald-950/40 animate-pulse'
-                              : hasEnded 
-                              ? 'bg-gradient-to-r from-blue-600 to-indigo-700 border-none hover:from-blue-500 hover:to-indigo-600 text-white hover:scale-105 shadow-md shadow-blue-950/30' 
-                              : 'opacity-55'
-                          }`}
-                        >
-                          {isEarlyCashoutEligible 
-                            ? (lang === 'vi' ? 'Nhận Tiền Sớm 💰' : 'Early Cashout 💰')
-                            : hasEnded 
-                            ? TRANSLATIONS[lang].settleBetBtn 
-                            : TRANSLATIONS[lang].awaitingConclusion}
-                        </Button>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
-            </CardContent>
-          </Card>
-
           {/* Session Statistics */}
           <Card className="bg-[#0b0b0b]/60 rounded-3xl border border-luxury-border/60">
             <CardHeader className="p-4 border-b border-luxury-border/60">
