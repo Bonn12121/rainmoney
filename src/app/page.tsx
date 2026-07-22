@@ -23,7 +23,13 @@ import {
   Coins,
   CloudRain,
   Sun,
-  Heart
+  Heart,
+  Search,
+  ChevronLeft,
+  ChevronRight,
+  Gamepad2,
+  Dices,
+  X
 } from 'lucide-react';
 
 interface LiveWin {
@@ -56,7 +62,7 @@ const CHAT_TEMPLATES = [
   "gg to RoyalFlush on that cashout",
   "Dice is so smooth. Set at 95% win chance to grind level",
   "Just went to Level 5. daily reward increased!",
-  "sportsbook Ivory Coast match is ending soon, bet settled!",
+  "sportsbook match is ending soon, bet settled!",
   "damn, rocket crashed at 1.05x lol",
   "plinko 1000x target, let's go",
   "just cashed out $5k on coin flip, heads never fails",
@@ -91,7 +97,7 @@ const GAMES = [
   { id: 'sports', name: 'Sports Betting', desc: 'Place virtual bets on live global sports fixtures including Premier League, NBA, NFL, UFC & Esports.', path: '/games/sports', tag: 'Sportsbook', category: 'sports' },
   { id: 'penalty', name: 'Penalty Shootout', desc: 'Shoot penalties and build multipliers. Cash out anytime!', path: '/games/penalty', tag: 'Sports Action', category: 'original', thumbnail: '/images/thumbnails/penalty.png' },
 
-  // Slots category (replaces arcade games)
+  // Slots category
   { id: 'slots-neon', name: 'Neon Fruits Slots', desc: 'Spin glowing classic fruit reels for retro neon payouts.', path: '/games/slots-neon', tag: 'Neon Classic', category: 'slots', thumbnail: '/images/thumbnails/slots-neon.png' },
   { id: 'slots-egypt', name: 'Pharaoh\'s Gold Slots', desc: 'Uncover ancient treasures along Egyptian paylines.', path: '/games/slots-egypt', tag: 'Ancient Egypt', category: 'slots', thumbnail: '/images/thumbnails/slots-egypt.png' },
   { id: 'slots-sweet', name: 'Sweet Candy Reels', desc: 'Spin delicious candy treats for colorful multipliers.', path: '/games/slots-sweet', tag: 'Sweet Candy', category: 'slots', thumbnail: '/images/thumbnails/slots-sweet.png' },
@@ -104,9 +110,7 @@ const GAMES = [
   { id: 'slots-undersea', name: 'Undersea Riches', desc: 'Dive deep into ocean reefs to uncover lost treasures.', path: '/games/slots-undersea', tag: 'Deep Ocean', category: 'slots', thumbnail: '/images/thumbnails/slots-undersea.png' },
 ];
 
-const CAROUSEL_GAMES = GAMES.filter(g => g.category === 'original' || g.category === 'slots');
-
-
+const CAROUSEL_GAMES = GAMES.filter(g => g.category === 'original' || g.category === 'slots' || g.category === 'sports');
 
 const COVER_GRADIENTS: Record<string, string> = {
   rocket: 'bg-gradient-to-br from-rose-500 via-red-400 to-amber-400',
@@ -145,137 +149,44 @@ const COVER_GRADIENTS: Record<string, string> = {
 const renderThumbnailPattern = (gameId: string) => {
   switch (gameId) {
     case 'rocket':
-      return (
-        <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#ef4444_1.5px,transparent_1.5px)] bg-[size:12px_12px]" />
-      );
+      return <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#ef4444_1.5px,transparent_1.5px)] bg-[size:12px_12px]" />;
     case 'mines':
-      return (
-        <div className="absolute inset-0 opacity-10 pointer-events-none bg-[linear-gradient(to_right,#eab308_1px,transparent_1px),linear-gradient(to_bottom,#eab308_1px,transparent_1px)] bg-[size:14px_14px]" />
-      );
+      return <div className="absolute inset-0 opacity-10 pointer-events-none bg-[linear-gradient(to_right,#eab308_1px,transparent_1px),linear-gradient(to_bottom,#eab308_1px,transparent_1px)] bg-[size:14px_14px]" />;
     case 'dice':
-      return (
-        <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#f59e0b_2px,transparent_2px)] bg-[size:16px_16px]" />
-      );
+      return <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#f59e0b_2px,transparent_2px)] bg-[size:16px_16px]" />;
     case 'coin-flip':
-      return (
-        <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_30%,#eab308_80%)]" />
-      );
+      return <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(circle_at_center,transparent_30%,#eab308_80%)]" />;
     case 'wheel':
-      return (
-        <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(circle,#f97316_1px,transparent_1px)] bg-[size:20px_20px]" />
-      );
+      return <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(circle,#f97316_1px,transparent_1px)] bg-[size:20px_20px]" />;
     case 'plinko':
-      return (
-        <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#0ea5e9_1.5px,transparent_1.5px)] bg-[size:16px_16px]" />
-      );
+      return <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#0ea5e9_1.5px,transparent_1.5px)] bg-[size:16px_16px]" />;
     case 'towers':
-      return (
-        <div className="absolute inset-0 opacity-10 pointer-events-none bg-[linear-gradient(45deg,#6366f1_25%,transparent_25%,transparent_75%,#6366f1_75%,#6366f1),linear-gradient(45deg,#6366f1_25%,transparent_25%,transparent_75%,#6366f1_75%,#6366f1)] bg-[size:20px_20px] bg-[position:0_0,10px_10px]" />
-      );
-    case 'rain-catch':
-      return (
-        <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#38bdf8_1.5px,transparent_1.5px)] bg-[size:16px_16px]" />
-      );
-    case 'crypto-miner':
-      return (
-        <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#f59e0b_1.5px,transparent_1.5px)] bg-[size:14px_14px]" />
-      );
+      return <div className="absolute inset-0 opacity-10 pointer-events-none bg-[linear-gradient(45deg,#6366f1_25%,transparent_25%,transparent_75%,#6366f1_75%,#6366f1)] bg-[size:20px_20px] bg-[position:0_0,10px_10px]" />;
     case 'sports':
-      return (
-        <div className="absolute inset-0 opacity-[0.08] pointer-events-none bg-[linear-gradient(to_right,#10b981_1.5px,transparent_1.5px)] bg-[size:20px_100%] [background-repeat:repeat-x]" />
-      );
-    case 'slots-neon':
-      return (
-        <div className="absolute inset-0 opacity-15 pointer-events-none bg-[linear-gradient(to_right,#10b981_1px,transparent_1px),linear-gradient(to_bottom,#10b981_1px,transparent_1px)] bg-[size:16px_16px]" />
-      );
-    case 'slots-egypt':
-      return (
-        <div className="absolute inset-0 opacity-15 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/sandpaper.png')]" />
-      );
-    case 'slots-sweet':
-      return (
-        <div className="absolute inset-0 opacity-10 pointer-events-none bg-[radial-gradient(#ec4899_2px,transparent_2px)] bg-[size:12px_12px]" />
-      );
-    case 'slots-cyber':
-      return (
-        <div className="absolute inset-0 opacity-20 pointer-events-none bg-[linear-gradient(to_bottom,#ec489910_50%,#00000030_50%)] bg-[size:100%_4px]" />
-      );
-    case 'slots-undersea':
-      return (
-        <div className="absolute inset-0 opacity-[0.12] pointer-events-none bg-[radial-gradient(circle_at_center,#0ea5e9_10%,transparent_70%)] bg-[size:24px_24px]" />
-      );
+      return <div className="absolute inset-0 opacity-[0.08] pointer-events-none bg-[linear-gradient(to_right,#10b981_1.5px,transparent_1.5px)] bg-[size:20px_100%] [background-repeat:repeat-x]" />;
     default:
-      return (
-        <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(#ffffff_1px,transparent_1px)] bg-[size:12px_12px]" />
-      );
+      return <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[radial-gradient(#ffffff_1px,transparent_1px)] bg-[size:12px_12px]" />;
   }
 };
 
 const HOVER_GLOWS: Record<string, string> = {
-  rocket: 'hover:border-red-500/40 hover:shadow-[0_0_25px_rgba(239,68,68,0.2)]',
-  mines: 'hover:border-yellow-500/40 hover:shadow-[0_0_25px_rgba(234,179,8,0.2)]',
-  dice: 'hover:border-amber-500/40 hover:shadow-[0_0_25px_rgba(245,158,11,0.2)]',
-  'coin-flip': 'hover:border-yellow-500/40 hover:shadow-[0_0_25px_rgba(234,179,8,0.2)]',
-  wheel: 'hover:border-orange-500/40 hover:shadow-[0_0_25px_rgba(249,115,22,0.2)]',
-  plinko: 'hover:border-sky-500/40 hover:shadow-[0_0_25px_rgba(14,165,233,0.2)]',
-  towers: 'hover:border-indigo-500/40 hover:shadow-[0_0_25px_rgba(99,102,241,0.2)]',
-  limbo: 'hover:border-rose-500/40 hover:shadow-[0_0_25px_rgba(244,63,94,0.2)]',
-  keno: 'hover:border-violet-500/40 hover:shadow-[0_0_25px_rgba(139,92,246,0.2)]',
-  'hi-lo': 'hover:border-emerald-500/40 hover:shadow-[0_0_25px_rgba(16,185,129,0.2)]',
-  pump: 'hover:border-cyan-500/40 hover:shadow-[0_0_25px_rgba(6,182,212,0.2)]',
-  rps: 'hover:border-orange-500/40 hover:shadow-[0_0_25px_rgba(249,115,22,0.2)]',
-  cup: 'hover:border-teal-500/40 hover:shadow-[0_0_25px_rgba(20,184,166,0.2)]',
-  toe: 'hover:border-indigo-500/40 hover:shadow-[0_0_25px_rgba(99,102,241,0.2)]',
-  sports: 'hover:border-emerald-500/40 hover:shadow-[0_0_25px_rgba(16,185,129,0.2)]',
-  cases: 'hover:border-blue-500/40 hover:shadow-[0_0_25px_rgba(59,130,246,0.2)]',
-  blackjack: 'hover:border-emerald-500/40 hover:shadow-[0_0_25px_rgba(16,185,129,0.2)]',
-  penalty: 'hover:border-teal-500/40 hover:shadow-[0_0_25px_rgba(20,184,166,0.2)]',
-  claw: 'hover:border-violet-500/40 hover:shadow-[0_0_25px_rgba(139,92,246,0.2)]',
-  baccarat: 'hover:border-indigo-500/40 hover:shadow-[0_0_25px_rgba(99,102,241,0.2)]',
-  'slots-neon': 'hover:border-emerald-500/40 hover:shadow-[0_0_25px_rgba(16,185,129,0.2)]',
-  'slots-egypt': 'hover:border-yellow-500/40 hover:shadow-[0_0_25px_rgba(234,179,8,0.2)]',
-  'slots-sweet': 'hover:border-pink-500/40 hover:shadow-[0_0_25px_rgba(236,72,153,0.2)]',
-  'slots-pirate': 'hover:border-orange-500/40 hover:shadow-[0_0_25px_rgba(249,115,22,0.2)]',
-  'slots-zeus': 'hover:border-violet-500/40 hover:shadow-[0_0_25px_rgba(139,92,246,0.2)]',
-  'slots-cyber': 'hover:border-purple-500/40 hover:shadow-[0_0_25px_rgba(168,85,247,0.2)]',
-  'slots-safari': 'hover:border-lime-500/40 hover:shadow-[0_0_25px_rgba(132,204,22,0.2)]',
-  'slots-dragon': 'hover:border-red-500/40 hover:shadow-[0_0_25px_rgba(239,68,68,0.2)]',
-  'slots-irish': 'hover:border-green-500/40 hover:shadow-[0_0_25px_rgba(34,197,94,0.2)]',
-  'slots-undersea': 'hover:border-sky-500/40 hover:shadow-[0_0_25px_rgba(14,165,233,0.2)]',
+  rocket: 'hover:border-red-500/50 hover:shadow-[0_0_30px_rgba(239,68,68,0.3)]',
+  mines: 'hover:border-yellow-500/50 hover:shadow-[0_0_30px_rgba(234,179,8,0.3)]',
+  dice: 'hover:border-amber-500/50 hover:shadow-[0_0_30px_rgba(245,158,11,0.3)]',
+  'coin-flip': 'hover:border-yellow-500/50 hover:shadow-[0_0_30px_rgba(234,179,8,0.3)]',
+  wheel: 'hover:border-orange-500/50 hover:shadow-[0_0_30px_rgba(249,115,22,0.3)]',
+  plinko: 'hover:border-sky-500/50 hover:shadow-[0_0_30px_rgba(14,165,233,0.3)]',
+  towers: 'hover:border-indigo-500/50 hover:shadow-[0_0_30px_rgba(99,102,241,0.3)]',
+  limbo: 'hover:border-rose-500/50 hover:shadow-[0_0_30px_rgba(244,63,94,0.3)]',
+  sports: 'hover:border-emerald-500/50 hover:shadow-[0_0_30px_rgba(16,185,129,0.3)]',
+  cases: 'hover:border-blue-500/50 hover:shadow-[0_0_30px_rgba(59,130,246,0.3)]',
 };
-
-const ADS = [
-  {
-    type: 'original',
-    title: 'Rainmoney Original',
-    gameName: 'Rocket Crash',
-    desc: 'Predict the crash! Experience high-stakes multipliers. Cash out before it explodes.',
-    path: '/games/rocket',
-    image: '/images/thumbnails/rocket.png',
-    bgClass: 'from-rose-950/90 via-black to-[#0c0f1c]',
-    tag: 'MULTIPLIER 99.8%',
-    color: '#ef4444'
-  },
-  {
-    type: 'slot',
-    title: 'Featured Slot',
-    gameName: "Dragon's Fortune",
-    desc: 'Spin the imperial Chinese reels for cherry blossoms and ancient golden fortunes.',
-    path: '/games/slots-dragon',
-    image: '/images/thumbnails/slots-dragon.png',
-    bgClass: 'from-amber-950/90 via-black to-[#0c0f1c]',
-    tag: 'CHERRY BLOSSOMS',
-    color: '#eab308'
-  }
-];
 
 export default function Home() {
   const router = useRouter();
   const { 
     credits, 
     level, 
-    claimDailyReward, 
-    dailyRewardClaimedAt, 
     username,
     rainPool,
     rainTimer,
@@ -283,7 +194,6 @@ export default function Home() {
     rainWinnerAmount,
     isRainWinnerBot,
     depositToRain,
-    forceRainEvent,
     summerRainPool,
     summerRainTimer,
     summerRainWinner,
@@ -295,6 +205,9 @@ export default function Home() {
   const [liveWins, setLiveWins] = useState<LiveWin[]>(INITIAL_LIVE_WINS);
   const [activeSidebarTab, setActiveSidebarTab] = useState<'wins' | 'chat'>('wins');
   const [jackpot, setJackpot] = useState<number>(1284912.43);
+  const [selectedCategory, setSelectedCategory] = useState<'all' | 'original' | 'slots' | 'sports'>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  
   const [chatMessages, setChatMessages] = useState<any[]>([
     { id: 'c1', username: 'Aurelius', level: 8, message: "Dice is paying good multipliers today!", time: '2m ago' },
     { id: 'c2', username: 'RoyalFlush', level: 12, message: "Who's up for some plinko drops?", time: '1m ago' },
@@ -312,6 +225,16 @@ export default function Home() {
     }, 4500);
     return () => clearInterval(timer);
   }, []);
+
+  const nextSlide = () => {
+    playClick();
+    setCurrentAdIdx(prev => (prev + 1) % CAROUSEL_GAMES.length);
+  };
+
+  const prevSlide = () => {
+    playClick();
+    setCurrentAdIdx(prev => (prev - 1 + CAROUSEL_GAMES.length) % CAROUSEL_GAMES.length);
+  };
 
   useEffect(() => {
     const loadFavorites = () => {
@@ -344,7 +267,6 @@ export default function Home() {
     window.dispatchEvent(new Event('favorites-changed'));
   };
 
-
   const formatRainTime = (seconds: number) => {
     const m = Math.floor(seconds / 60);
     const s = seconds % 60;
@@ -372,10 +294,7 @@ export default function Home() {
   const handleCustomDonation = (e: React.FormEvent) => {
     e.preventDefault();
     const amount = parseFloat(customDonation);
-    if (isNaN(amount) || amount <= 0) {
-      alert('Please enter a valid amount.');
-      return;
-    }
+    if (isNaN(amount) || amount <= 0) return;
     if (credits < amount) {
       alert('Insufficient virtual credits to donate.');
       return;
@@ -390,10 +309,7 @@ export default function Home() {
   const handleCustomSummerDonation = (e: React.FormEvent) => {
     e.preventDefault();
     const amount = parseFloat(customSummerDonation);
-    if (isNaN(amount) || amount <= 0) {
-      alert('Please enter a valid amount.');
-      return;
-    }
+    if (isNaN(amount) || amount <= 0) return;
     if (credits < amount) {
       alert('Insufficient virtual credits to donate.');
       return;
@@ -405,97 +321,6 @@ export default function Home() {
     }
   };
 
-  // Listen to custom window events for Rain
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const handleRainDonation = (e: CustomEvent) => {
-      const { username: donorName, amount } = e.detail;
-      setChatMessages(prev => {
-        const newMsg = {
-          id: Math.random().toString(36).substring(2, 9),
-          username: donorName,
-          level: donorName === username ? level : Math.floor(Math.random() * 8) + 1,
-          message: `donated $${amount} to the Rain Pool! 🌧️💙`,
-          time: 'Just now'
-        };
-        return [...prev.slice(-19), newMsg];
-      });
-      playPlop();
-    };
-
-    const handleRainWon = (e: CustomEvent) => {
-      const { winner, amount, isBot } = e.detail;
-      setChatMessages(prev => {
-        const newMsg = {
-          id: Math.random().toString(36).substring(2, 9),
-          username: 'System_Rain',
-          level: 99,
-          message: `🌧️ ${winner} has won the Rain Pool of $${amount.toFixed(2)}! 💸`,
-          time: 'Just now'
-        };
-        return [...prev.slice(-19), newMsg];
-      });
-      
-      if (!isBot) {
-        playWin();
-        triggerWinConfetti();
-        alert(`🎉 CONGRATULATIONS! You won the Rain Pool of $${amount.toFixed(2)}!`);
-      } else {
-        playLoss();
-      }
-    };
-
-    const handleSummerRainDonation = (e: CustomEvent) => {
-      const { username: donorName, amount } = e.detail;
-      setChatMessages(prev => {
-        const newMsg = {
-          id: Math.random().toString(36).substring(2, 9),
-          username: donorName,
-          level: donorName === username ? level : Math.floor(Math.random() * 8) + 1,
-          message: `donated $${amount} to the Summer Rain Pool! ☀️💛`,
-          time: 'Just now'
-        };
-        return [...prev.slice(-19), newMsg];
-      });
-      playPlop();
-    };
-
-    const handleSummerRainWon = (e: CustomEvent) => {
-      const { winner, amount, isBot } = e.detail;
-      setChatMessages(prev => {
-        const newMsg = {
-          id: Math.random().toString(36).substring(2, 9),
-          username: 'System_SummerRain',
-          level: 99,
-          message: `☀️ ${winner} has won the Summer Rain Pool of $${amount.toFixed(2)}! 💸✨`,
-          time: 'Just now'
-        };
-        return [...prev.slice(-19), newMsg];
-      });
-      
-      if (!isBot) {
-        playWin();
-        triggerWinConfetti();
-        alert(`🎉 CONGRATULATIONS! You won the Summer Rain Pool of $${amount.toFixed(2)}!`);
-      } else {
-        playLoss();
-      }
-    };
-
-    window.addEventListener('rain_donation' as any, handleRainDonation);
-    window.addEventListener('rain_won' as any, handleRainWon);
-    window.addEventListener('summer_rain_donation' as any, handleSummerRainDonation);
-    window.addEventListener('summer_rain_won' as any, handleSummerRainWon);
-
-    return () => {
-      window.removeEventListener('rain_donation' as any, handleRainDonation);
-      window.removeEventListener('rain_won' as any, handleRainWon);
-      window.removeEventListener('summer_rain_donation' as any, handleSummerRainDonation);
-      window.removeEventListener('summer_rain_won' as any, handleSummerRainWon);
-    };
-  }, [username, level, playPlop, playWin, playLoss]);
-  
   const [stats, setStats] = useState({
     activePlayers: 2481,
     totalBets: 148204,
@@ -510,7 +335,7 @@ export default function Home() {
     return () => clearInterval(jackpotInterval);
   }, []);
 
-  // Simulating live wins and changing stats periodically to make it dynamic
+  // Simulating live wins
   useEffect(() => {
     const winsInterval = setInterval(() => {
       const randomGame = GAMES[Math.floor(Math.random() * GAMES.length)];
@@ -562,7 +387,7 @@ export default function Home() {
       };
       setChatMessages(prev => {
         const next = [...prev.map(m => m.time === 'Just now' ? { ...m, time: '1m ago' } : m), newMsg];
-        return next.slice(-20); // Keep last 20 messages
+        return next.slice(-20);
       });
       playPlop();
     }, 6000);
@@ -585,40 +410,78 @@ export default function Home() {
     setChatInput('');
   };
 
+  // Filtered games count
+  const filteredGames = GAMES.filter(game => {
+    const matchesCategory = selectedCategory === 'all' || game.category === selectedCategory;
+    const matchesSearch = searchQuery.trim() === '' || 
+      game.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      game.desc.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      game.tag.toLowerCase().includes(searchQuery.toLowerCase());
+    return matchesCategory && matchesSearch;
+  });
+
+  const originalsCount = GAMES.filter(g => g.category === 'original').length;
+  const slotsCount = GAMES.filter(g => g.category === 'slots').length;
+  const sportsCount = GAMES.filter(g => g.category === 'sports').length;
+
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col gap-8 flex-grow">
       
-      {/* Hero Section */}
-      <section className="relative overflow-hidden rounded-3xl border border-blue-500/20 bg-gradient-to-b from-[#0a1535]/80 via-[#030712]/95 to-[#020617] py-16 px-8 sm:px-12 flex flex-col md:flex-row items-center justify-between gap-10 shadow-[0_0_60px_-15px_rgba(59,130,246,0.3)]">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/15 rounded-full filter blur-[120px] -mr-20 -mt-20"></div>
-        <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-500/10 rounded-full filter blur-[120px] -ml-20 -mb-20"></div>
+      {/* Live Ticker Bar */}
+      <div className="w-full bg-luxury-surface/80 border border-blue-500/20 backdrop-blur-md rounded-2xl px-5 py-2.5 flex flex-wrap items-center justify-between text-xs font-bold text-neutral-300 shadow-[0_0_20px_rgba(59,130,246,0.1)] gap-4">
+        <div className="flex items-center gap-2">
+          <span className="h-2.5 w-2.5 rounded-full bg-emerald-400 animate-ping"></span>
+          <span className="text-white font-extrabold">{stats.activePlayers.toLocaleString()}</span>
+          <span className="text-neutral-400 font-medium">Players Online</span>
+        </div>
+        <div className="hidden sm:flex items-center gap-2 border-x border-white/10 px-6">
+          <Activity className="w-4 h-4 text-blue-400" />
+          <span className="text-white font-extrabold">{stats.totalBets.toLocaleString()}</span>
+          <span className="text-neutral-400 font-medium">Total Rounds Played</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
+          <span className="text-neutral-400 font-medium">Grand Jackpot:</span>
+          <span className="gold-gradient-text font-black text-sm font-mono">${jackpot.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+        </div>
+      </div>
 
-        <div className="max-w-2xl flex flex-col gap-6 relative z-10">
-          <span className="self-start px-3 py-1 bg-blue-500/10 border border-blue-500/25 text-blue-400 text-[10px] font-extrabold rounded-full uppercase tracking-widest flex items-center gap-1.5 shadow-[0_0_15px_rgba(59,130,246,0.1)]">
-            <Sparkles className="w-3 h-3 text-blue-400 animate-pulse" />
-            Luxury Gaming Hub
+      {/* Hero Section */}
+      <section className="relative overflow-hidden rounded-3xl border border-blue-500/30 bg-gradient-to-b from-[#0a1535]/90 via-[#030712]/95 to-[#020617] py-12 px-6 sm:px-12 flex flex-col md:flex-row items-center justify-between gap-10 shadow-[0_0_50px_rgba(59,130,246,0.2)]">
+        <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/15 rounded-full filter blur-[120px] -mr-20 -mt-20 pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 w-96 h-96 bg-indigo-500/10 rounded-full filter blur-[120px] -ml-20 -mb-20 pointer-events-none"></div>
+
+        <div className="max-w-xl flex flex-col gap-5 relative z-10">
+          <span className="self-start px-3.5 py-1 bg-blue-500/15 border border-blue-500/30 text-blue-400 text-[10px] font-extrabold rounded-full uppercase tracking-widest flex items-center gap-2 shadow-[0_0_15px_rgba(59,130,246,0.2)]">
+            <Sparkles className="w-3.5 h-3.5 text-blue-400 animate-pulse" />
+            RainMoney Premium Platform
           </span>
           <h1 className="font-sans text-4xl sm:text-5xl lg:text-6xl font-black tracking-tight text-white leading-tight">
-            Elevated Virtual <br />
-            <span className="gold-gradient-text">USD Entertainment</span>
+            Next-Gen Virtual <br />
+            <span className="gold-gradient-text">Casino & Sports Hub</span>
           </h1>
-          <p className="text-neutral-400 text-sm sm:text-base max-w-lg leading-relaxed font-medium">
-            Welcome to RainMoney, a premium fintech-inspired platform. Experience simple, beautifully designed game titles utilizing virtual currency. Pure aesthetics.
+          <p className="text-neutral-300 text-sm sm:text-base leading-relaxed font-medium">
+            Experience high-octane thrill with original provably fair titles, neon slots, and live ESPN sportsbook betting. Virtual stakes, ultimate luxury design.
           </p>
-          <div className="flex flex-wrap gap-4 mt-2">
+          <div className="flex flex-wrap items-center gap-4 mt-2">
             <Link href={CAROUSEL_GAMES[currentAdIdx]?.path || '/games/rocket'}>
-              <Button variant="gold" size="lg" className="flex items-center gap-2 px-8 shadow-[0_0_20px_rgba(234,179,8,0.25)] hover:shadow-[0_0_30px_rgba(234,179,8,0.5)] transition-all">
+              <Button variant="gold" size="lg" className="flex items-center gap-2.5 px-8 py-3 text-sm font-black uppercase tracking-wider shadow-[0_0_25px_rgba(234,179,8,0.3)] hover:shadow-[0_0_35px_rgba(234,179,8,0.6)] transition-all">
                 <span>Play {CAROUSEL_GAMES[currentAdIdx]?.name || 'Rocket'}</span>
                 <ArrowUpRight className="w-5 h-5" />
+              </Button>
+            </Link>
+            <Link href="/games/sports">
+              <Button variant="outline" size="lg" className="flex items-center gap-2 px-6 py-3 border-blue-500/40 text-blue-400 hover:bg-blue-500/10 text-sm font-bold uppercase tracking-wider">
+                <span>Sportsbook</span>
               </Button>
             </Link>
           </div>
         </div>
 
-        {/* Big Ads Carousel */}
-        <div className="w-full md:w-[460px] relative z-10 flex flex-col gap-4">
-          <div className="relative w-full h-[230px] rounded-3xl overflow-hidden border border-luxury-border/60 bg-gradient-to-br from-[#0c1024]/90 via-[#060814]/98 to-[#02030a] shadow-[0_0_40px_rgba(59,130,246,0.15)] select-none transition-all duration-500">
-            {/* Automatic Slide Display */}
+        {/* Hero Carousel Display */}
+        <div className="w-full md:w-[460px] relative z-10 flex flex-col gap-3">
+          <div className="relative w-full h-[240px] rounded-3xl overflow-hidden border border-blue-500/30 bg-gradient-to-br from-[#0c1024]/90 via-[#060814]/98 to-[#02030a] shadow-[0_0_40px_rgba(59,130,246,0.2)] select-none transition-all duration-500">
+            {/* Automatic & Manual Slide Display */}
             {CAROUSEL_GAMES.map((ad, idx) => {
               const isActive = idx === currentAdIdx;
               const gradClass = COVER_GRADIENTS[ad.id] || 'bg-[#0c1024]';
@@ -644,25 +507,25 @@ export default function Home() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/45 to-transparent z-10" />
 
                   {/* Content overlay */}
-                  <div className="absolute inset-0 p-5 flex flex-col justify-end gap-2.5 z-25">
+                  <div className="absolute inset-0 p-6 flex flex-col justify-end gap-2.5 z-25">
                     <div className="flex items-center justify-between">
-                      <span className="px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[8px] font-black rounded-full uppercase tracking-widest leading-none">
+                      <span className="px-2.5 py-0.5 bg-blue-500/20 border border-blue-500/30 text-blue-300 text-[9px] font-black rounded-full uppercase tracking-widest leading-none">
                         {ad.tag}
                       </span>
-                      <span className="text-[8px] text-neutral-400 font-extrabold uppercase tracking-widest bg-black/40 px-2 py-0.5 rounded-md border border-white/[0.04]">
-                        {ad.category === 'slots' ? 'Slot Game' : 'Original'}
+                      <span className="text-[9px] text-neutral-300 font-extrabold uppercase tracking-widest bg-black/60 backdrop-blur-md px-2.5 py-0.5 rounded-md border border-white/[0.08]">
+                        {ad.category === 'slots' ? 'Slot Game' : ad.category === 'sports' ? 'Live Sports' : 'Rain Original'}
                       </span>
                     </div>
                     <div>
-                      <h2 className="text-base font-black text-white tracking-tight mt-1 leading-none uppercase">{ad.name}</h2>
+                      <h2 className="text-lg font-black text-white tracking-tight mt-1 leading-none uppercase">{ad.name}</h2>
                     </div>
-                    <p className="text-[10px] text-neutral-300 leading-relaxed font-semibold line-clamp-2 pr-10">
+                    <p className="text-[11px] text-neutral-300 leading-relaxed font-medium line-clamp-2 pr-10">
                       {ad.desc}
                     </p>
                     <Link href={ad.path} className="self-start">
-                      <Button variant="gold" size="sm" className="text-[9px] uppercase font-black tracking-wider py-1.5 px-4 flex items-center gap-1.5 shadow-lg">
-                        <span>Play Now</span>
-                        <ArrowUpRight className="w-3.5 h-3.5" />
+                      <Button variant="gold" size="sm" className="text-[10px] uppercase font-black tracking-wider py-2 px-5 flex items-center gap-2 shadow-lg">
+                        <span>Play Game</span>
+                        <ArrowUpRight className="w-4 h-4" />
                       </Button>
                     </Link>
                   </div>
@@ -670,23 +533,29 @@ export default function Home() {
               );
             })}
 
-            {/* Carousel Fractions Indicator */}
-            <div className="absolute top-5 right-5 z-30 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/[0.06] text-[8px] font-black tracking-widest text-neutral-400">
-              {currentAdIdx + 1} / {CAROUSEL_GAMES.length}
+            {/* Carousel Controls */}
+            <div className="absolute top-4 right-4 z-30 flex items-center gap-2">
+              <button onClick={prevSlide} className="p-1.5 rounded-full bg-black/70 border border-white/10 hover:border-blue-500/50 text-white transition-all cursor-pointer">
+                <ChevronLeft className="w-3.5 h-3.5" />
+              </button>
+              <span className="bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10 text-[9px] font-black tracking-widest text-neutral-300">
+                {currentAdIdx + 1}/{CAROUSEL_GAMES.length}
+              </span>
+              <button onClick={nextSlide} className="p-1.5 rounded-full bg-black/70 border border-white/10 hover:border-blue-500/50 text-white transition-all cursor-pointer">
+                <ChevronRight className="w-3.5 h-3.5" />
+              </button>
             </div>
           </div>
         </div>
       </section>
 
-
       {/* Dual Rain Pools Center */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 1. Regular Rain Pool Card */}
-        <div className="relative overflow-hidden rounded-3xl border border-blue-500/25 bg-gradient-to-b from-[#0a1535]/80 via-[#030712]/95 to-[#020617] p-6 sm:p-8 flex flex-col justify-between gap-6 shadow-[0_0_40px_rgba(59,130,246,0.15)]">
+        <div className="relative overflow-hidden rounded-3xl border border-blue-500/30 bg-gradient-to-b from-[#0a1535]/80 via-[#030712]/95 to-[#020617] p-6 sm:p-8 flex flex-col justify-between gap-6 shadow-[0_0_40px_rgba(59,130,246,0.15)]">
           <div className="absolute top-0 left-0 w-48 h-full bg-blue-500/5 filter blur-2xl pointer-events-none"></div>
           
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10 w-full">
-            {/* Left: Pool Info */}
             <div className="flex items-center gap-4.5">
               <div className="p-4 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-2xl shadow-inner shrink-0">
                 <CloudRain className="w-8 h-8 animate-bounce text-blue-400" />
@@ -702,14 +571,13 @@ export default function Home() {
                   </span>
                   <span className="text-[10px] text-neutral-400 font-extrabold uppercase">Ticking (+$1/s)</span>
                 </div>
-                <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider mt-1.5 flex items-center gap-1.5">
+                <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider mt-1.5 flex items-center gap-1.5">
                   <span>Next Rain In:</span>
                   <span className="text-blue-400 font-black font-mono text-xs">{formatRainTime(rainTimer)}</span>
                 </p>
               </div>
             </div>
 
-            {/* Right: Last Winner */}
             <div className="border-t sm:border-t-0 sm:border-l border-luxury-border/60 pt-4 sm:pt-0 sm:pl-6 flex flex-col justify-center select-none shrink-0 min-w-[150px]">
               <span className="text-[9px] text-neutral-500 font-black uppercase tracking-widest leading-none">Last Rain Winner</span>
               {rainWinner ? (
@@ -737,7 +605,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Donation Actions */}
           <div className="flex flex-col gap-2 w-full relative z-10 border-t border-luxury-border/60 pt-4 mt-2">
             <span className="text-[9px] text-neutral-500 font-black uppercase tracking-widest">Donate Virtual Funds</span>
             <div className="flex flex-wrap items-center gap-2 justify-between">
@@ -762,7 +629,6 @@ export default function Home() {
                 </button>
               </div>
 
-              {/* Custom Donation Form */}
               <form onSubmit={handleCustomDonation} className="flex items-center gap-1 mt-1 sm:mt-0">
                 <div className="relative flex items-center">
                   <span className="absolute left-2.5 text-[10px] font-bold text-neutral-500">$</span>
@@ -792,7 +658,6 @@ export default function Home() {
           <div className="absolute top-0 left-0 w-48 h-full bg-amber-500/5 filter blur-2xl pointer-events-none"></div>
           
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 relative z-10 w-full">
-            {/* Left: Pool Info */}
             <div className="flex items-center gap-4.5">
               <div className="p-4 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-2xl shadow-inner shrink-0 shadow-[inset_0_0_15px_rgba(245,158,11,0.15)]">
                 <Sun className="w-8 h-8 animate-spin-slow text-amber-400" />
@@ -817,7 +682,6 @@ export default function Home() {
               </div>
             </div>
 
-            {/* Right: Last Winner */}
             <div className="border-t sm:border-t-0 sm:border-l border-luxury-border/60 pt-4 sm:pt-0 sm:pl-6 flex flex-col justify-center select-none shrink-0 min-w-[150px]">
               <span className="text-[9px] text-neutral-500 font-black uppercase tracking-widest leading-none">Last Summer Winner</span>
               {summerRainWinner ? (
@@ -845,7 +709,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Donation Actions */}
           <div className="flex flex-col gap-2 w-full relative z-10 border-t border-luxury-border/60 pt-4 mt-2">
             <span className="text-[9px] text-neutral-500 font-black uppercase tracking-widest">Donate Virtual Funds</span>
             <div className="flex flex-wrap items-center gap-2 justify-between">
@@ -870,7 +733,6 @@ export default function Home() {
                 </button>
               </div>
 
-              {/* Custom Donation Form */}
               <form onSubmit={handleCustomSummerDonation} className="flex items-center gap-1 mt-1 sm:mt-0">
                 <div className="relative flex items-center">
                   <span className="absolute left-2.5 text-[10px] font-bold text-neutral-500">$</span>
@@ -896,242 +758,178 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Platform Statistics */}
-      <section className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <Card className="bg-[#0b0f19]/40 border-luxury-border/50 shadow-md">
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 bg-blue-500/10 rounded-2xl border border-blue-500/20 text-blue-400">
-              <Users className="w-6 h-6" />
-            </div>
-            <div>
-              <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest leading-none">Active Users</span>
-              <h4 className="text-xl font-extrabold text-white mt-1.5">{stats.activePlayers.toLocaleString()}</h4>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-[#0b0f19]/40 border-luxury-border/50 shadow-md">
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 bg-blue-500/10 rounded-2xl border border-blue-500/20 text-blue-400">
-              <Activity className="w-6 h-6 animate-pulse-slow" />
-            </div>
-            <div>
-              <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest leading-none">Game Rounds</span>
-              <h4 className="text-xl font-extrabold text-white mt-1.5">{stats.totalBets.toLocaleString()}</h4>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-[#0b0f19]/40 border-luxury-border/50 shadow-md">
-          <CardContent className="p-6 flex items-center gap-4">
-            <div className="p-3 bg-blue-500/10 rounded-2xl border border-blue-500/20 text-blue-400">
-              <Award className="w-6 h-6 animate-float" />
-            </div>
-            <div>
-              <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-widest leading-none">Win Volume</span>
-              <h4 className="text-xl font-extrabold text-white mt-1.5">${stats.houseVolume.toLocaleString()}</h4>
-            </div>
-          </CardContent>
-        </Card>
-      </section>
-
-      {/* Main Grid: Games Grid on the left, Feeds/Sidebar on the right */}
+      {/* Main Grid: Games catalog on the left, feeds on the right */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         
-        {/* Featured Games (Col-Span 2) */}
-        <div className="lg:col-span-2 flex flex-col gap-8">
+        {/* Main Games Catalog Section */}
+        <div className="lg:col-span-2 flex flex-col gap-6">
           
-          <>
-            {/* Section 1: Rainmoney Originals */}
-            <div className="flex flex-col gap-6 animate-fade-in">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <Flame className="w-5 h-5 text-blue-400 animate-pulse" />
-                      <h2 className="text-lg font-extrabold tracking-widest text-white uppercase">Rainmoney Originals</h2>
-                    </div>
-                    <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider mt-1">High-fidelity in-house premium luxury games.</p>
-                  </div>
-                </div>
+          {/* Category Tabs & Instant Search Bar */}
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 p-3 bg-luxury-surface/70 border border-luxury-border/80 backdrop-blur-md rounded-2xl">
+            {/* Category Pills */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 sm:pb-0 scrollbar-none">
+              <button
+                onClick={() => { setSelectedCategory('all'); playClick(); }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
+                  selectedCategory === 'all'
+                    ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(59,130,246,0.4)]'
+                    : 'bg-black/30 border border-white/5 text-neutral-400 hover:text-white hover:border-white/10'
+                }`}
+              >
+                <Gamepad2 className="w-3.5 h-3.5" />
+                <span>All Games</span>
+                <span className="text-[9px] bg-white/20 px-1.5 py-0.2 rounded-full">{GAMES.length}</span>
+              </button>
 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                  {GAMES.filter(g => g.category === 'original').map((game) => {
-                    const gradClass = COVER_GRADIENTS[game.id] || 'bg-luxury-surface';
-                    const hoverGlow = HOVER_GLOWS[game.id] || 'hover:border-blue-500/30 hover:shadow-[0_0_20px_rgba(59,130,246,0.15)]';
-                    const isFavorite = favoriteIds.includes(game.id);
+              <button
+                onClick={() => { setSelectedCategory('original'); playClick(); }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
+                  selectedCategory === 'original'
+                    ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(59,130,246,0.4)]'
+                    : 'bg-black/30 border border-white/5 text-neutral-400 hover:text-white hover:border-white/10'
+                }`}
+              >
+                <Flame className="w-3.5 h-3.5 text-blue-400" />
+                <span>Originals</span>
+                <span className="text-[9px] bg-white/20 px-1.5 py-0.2 rounded-full">{originalsCount}</span>
+              </button>
 
-                    return (
-                      <div key={game.id} className="relative group hover:-translate-y-1.5 transition-all duration-300">
-                        {/* Heart Toggle */}
-                        <button
-                          onClick={(e) => toggleFavorite(game.id, e)}
-                          className="absolute top-2.5 right-2.5 z-20 p-1.5 rounded-xl bg-black/60 border border-white/[0.08] hover:border-rose-500/20 text-neutral-400 hover:text-rose-500 hover:bg-rose-500/5 transition-all cursor-pointer"
-                          title={isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
-                        >
-                          <Heart className={`w-3.5 h-3.5 ${isFavorite ? 'fill-rose-500 text-rose-500' : 'text-neutral-450'}`} />
-                        </button>
+              <button
+                onClick={() => { setSelectedCategory('slots'); playClick(); }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
+                  selectedCategory === 'slots'
+                    ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(59,130,246,0.4)]'
+                    : 'bg-black/30 border border-white/5 text-neutral-400 hover:text-white hover:border-white/10'
+                }`}
+              >
+                <Coins className="w-3.5 h-3.5 text-amber-400" />
+                <span>Slots</span>
+                <span className="text-[9px] bg-white/20 px-1.5 py-0.2 rounded-full">{slotsCount}</span>
+              </button>
 
-                        <Link href={game.path} className="block w-full h-full">
-                          <div className={`relative aspect-[3/4] flex flex-col justify-between p-4 overflow-hidden rounded-2xl border border-luxury-border/60 transition-all duration-300 cursor-pointer shadow-lg ${game.thumbnail ? 'bg-luxury-surface' : gradClass} ${hoverGlow}`}>
-                            
-                            {/* Colorful Full-bleed Thumbnail Image */}
-                            {game.thumbnail ? (
-                              <div className="absolute inset-0 bg-[size:97%_97%] bg-center bg-no-repeat group-hover:scale-[1.03] transition-transform duration-500" style={{ backgroundImage: `url(${game.thumbnail})` }} />
-                            ) : (
-                              <>
-                                {/* Rich background radial glow */}
-                                <div className="absolute -bottom-10 w-28 h-28 rounded-full blur-2xl opacity-30 group-hover:scale-125 transition-transform duration-500 bg-[#3b82f6]" />
-                                {/* Glossy sweep hover effect */}
-                                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-out z-0" />
-                                {/* Beautiful dynamic pattern overlay */}
-                                {renderThumbnailPattern(game.id)}
-                              </>
-                            )}
+              <button
+                onClick={() => { setSelectedCategory('sports'); playClick(); }}
+                className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
+                  selectedCategory === 'sports'
+                    ? 'bg-blue-600 text-white shadow-[0_0_15px_rgba(59,130,246,0.4)]'
+                    : 'bg-black/30 border border-white/5 text-neutral-400 hover:text-white hover:border-white/10'
+                }`}
+              >
+                <Dices className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Sportsbook</span>
+                <span className="text-[9px] bg-white/20 px-1.5 py-0.2 rounded-full">{sportsCount}</span>
+              </button>
+            </div>
 
-                            {/* Black gradient fade overlay */}
-                            {!game.thumbnail && (
-                              <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent z-10" />
-                            )}
-                            
-                            {/* Tag badge */}
-                            <div className="absolute top-3 left-3 z-15">
-                              <span className="text-[7px] font-bold tracking-wider text-white/80 bg-black/75 border border-white/10 px-2 rounded-full uppercase transition-all duration-300 backdrop-blur-sm">
-                                {game.tag}
-                              </span>
-                            </div>
-
-                            {/* Center Icon (large, creative, no dark circle) */}
-                            {!game.thumbnail && (
-                              <div className="flex-grow flex items-center justify-center mb-2 mt-6 z-15">
-                                <GameIcon id={game.id} className="w-18 h-18 sm:w-20 sm:h-20 group-hover:scale-115 group-hover:rotate-3 transition-transform duration-300 drop-shadow-[0_8px_20px_rgba(0,0,0,0.4)]" />
-                              </div>
-                            )}
-
-                            {/* Bottom Translucent Text Plate */}
-                            {!game.thumbnail && (
-                              <div className="relative z-20 flex flex-col w-full bg-black/45 backdrop-blur-md p-2 rounded-xl border border-white/[0.04] mt-auto">
-                                <span className="font-sans font-black text-[10px] sm:text-xs tracking-wider text-white uppercase text-center truncate">
-                                  {game.name}
-                                </span>
-                                <span className="text-[6px] font-black text-blue-400 group-hover:text-blue-300 uppercase tracking-widest mt-0.5 text-center transition-colors">
-                                  Original
-                                </span>
-                              </div>
-                            )}
-                          </div>
-                        </Link>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
- 
-              {/* Section 2: Premium Slots */}
-              <div className="flex flex-col gap-6 border-t border-luxury-border/30 pt-8 animate-fade-in">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <div className="flex items-center gap-2">
-                      <Coins className="w-5 h-5 text-amber-400 animate-pulse" />
-                      <h2 className="text-lg font-extrabold tracking-widest text-white uppercase">Premium Slot Machines</h2>
-                    </div>
-                    <p className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider mt-1">Spin luxury themed reels with multi-payline win combinations.</p>
-                  </div>
-                </div>
- 
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                  {GAMES.filter(g => g.category === 'slots').map((game) => {
-                    const gradClass = COVER_GRADIENTS[game.id] || 'bg-luxury-surface';
-                    const hoverGlow = HOVER_GLOWS[game.id] || 'hover:border-blue-500/30 hover:shadow-[0_0_20px_rgba(59,130,246,0.15)]';
-                    const isFavorite = favoriteIds.includes(game.id);
-
-                    return (
-                      <div key={game.id} className="relative group hover:-translate-y-1.5 transition-all duration-300">
-                        {/* Heart Toggle */}
-                        <button
-                          onClick={(e) => toggleFavorite(game.id, e)}
-                          className="absolute top-2.5 right-2.5 z-20 p-1.5 rounded-xl bg-black/60 border border-white/[0.08] hover:border-rose-500/20 text-neutral-400 hover:text-rose-500 hover:bg-rose-500/5 transition-all cursor-pointer"
-                          title={isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
-                        >
-                          <Heart className={`w-3.5 h-3.5 ${isFavorite ? 'fill-rose-500 text-rose-500' : 'text-neutral-450'}`} />
-                        </button>
-
-                        <Link href={game.path} className="block w-full h-full">
-                          <div className={`relative aspect-[3/4] flex flex-col justify-between p-4 overflow-hidden rounded-2xl border border-luxury-border/60 transition-all duration-300 cursor-pointer shadow-lg ${game.thumbnail ? 'bg-luxury-surface' : gradClass} ${hoverGlow}`}>
-                            
-                            {/* Colorful Full-bleed Thumbnail Image */}
-                            {game.thumbnail ? (
-                              <div className="absolute inset-0 bg-cover bg-center group-hover:scale-105 transition-transform duration-500" style={{ backgroundImage: `url(${game.thumbnail})` }} />
-                            ) : (
-                              <>
-                                {/* Rich background radial glow */}
-                                <div className="absolute -bottom-10 w-28 h-28 rounded-full blur-2xl opacity-30 group-hover:scale-125 transition-transform duration-500 bg-[#f59e0b]" />
-                                {/* Glossy sweep hover effect */}
-                                <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-out z-0" />
-                                {/* Beautiful dynamic pattern overlay */}
-                                {renderThumbnailPattern(game.id)}
-                              </>
-                            )}
-
-                            {/* Black gradient fade overlay */}
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-transparent to-transparent z-10" />
-                            
-                            {/* Tag badge */}
-                            <div className="absolute top-3 left-3 z-15">
-                              <span className="text-[7px] font-bold tracking-wider text-white/80 bg-black/75 border border-white/10 px-2 rounded-full uppercase transition-all duration-300 backdrop-blur-sm">
-                                {game.tag}
-                              </span>
-                            </div>
-
-                            {/* Center Icon (large, creative, no dark circle) */}
-                            {!game.thumbnail && (
-                              <div className="flex-grow flex items-center justify-center mb-2 mt-6 z-15">
-                                <GameIcon id={game.id} className="w-18 h-18 sm:w-20 sm:h-20 group-hover:scale-115 group-hover:rotate-3 transition-transform duration-300 drop-shadow-[0_8px_20px_rgba(0,0,0,0.4)]" />
-                              </div>
-                            )}
-
-                            {/* Bottom Translucent Text Plate */}
-                            <div className="relative z-20 flex flex-col w-full bg-black/45 backdrop-blur-md p-2 rounded-xl border border-white/[0.04] mt-auto">
-                              <span className="font-sans font-black text-[10px] sm:text-xs tracking-wider text-white uppercase text-center truncate">
-                                {game.name}
-                              </span>
-                              <span className="text-[6px] font-black text-amber-400 group-hover:text-amber-300 uppercase tracking-widest mt-0.5 text-center transition-colors">
-                                Premium Slot
-                              </span>
-                            </div>
-                          </div>
-                        </Link>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </>
+            {/* Instant Search Bar */}
+            <div className="relative shrink-0">
+              <Search className="w-3.5 h-3.5 text-neutral-400 absolute left-3 top-3" />
+              <input
+                type="text"
+                placeholder="Search 30+ games..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full sm:w-48 bg-black/60 border border-luxury-border/80 focus:border-blue-500/60 rounded-xl pl-8 pr-7 py-1.5 text-xs text-white placeholder-neutral-500 focus:outline-none transition-all"
+              />
+              {searchQuery && (
+                <button onClick={() => setSearchQuery('')} className="absolute right-2.5 top-2.5 text-neutral-400 hover:text-white">
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
           </div>
 
-        {/* Sidebar feeds */}
+          {/* Render Games Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+            {filteredGames.length === 0 ? (
+              <div className="col-span-full py-16 text-center text-neutral-400 flex flex-col items-center gap-3">
+                <Search className="w-8 h-8 text-neutral-500" />
+                <span className="text-sm font-bold">No games match your search query "{searchQuery}".</span>
+                <button onClick={() => setSearchQuery('')} className="text-xs text-blue-400 hover:underline font-extrabold uppercase">Clear search filter</button>
+              </div>
+            ) : (
+              filteredGames.map((game) => {
+                const gradClass = COVER_GRADIENTS[game.id] || 'bg-luxury-surface';
+                const hoverGlow = HOVER_GLOWS[game.id] || 'hover:border-blue-500/40 hover:shadow-[0_0_25px_rgba(59,130,246,0.2)]';
+                const isFavorite = favoriteIds.includes(game.id);
+
+                return (
+                  <div key={game.id} className="relative group hover:-translate-y-1.5 transition-all duration-300">
+                    <button
+                      onClick={(e) => toggleFavorite(game.id, e)}
+                      className="absolute top-2.5 right-2.5 z-20 p-1.5 rounded-xl bg-black/70 border border-white/10 hover:border-rose-500/30 text-neutral-400 hover:text-rose-500 transition-all cursor-pointer"
+                      title={isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
+                    >
+                      <Heart className={`w-3.5 h-3.5 ${isFavorite ? 'fill-rose-500 text-rose-500' : 'text-neutral-400'}`} />
+                    </button>
+
+                    <Link href={game.path} className="block w-full h-full">
+                      <div className={`relative aspect-[3/4] flex flex-col justify-between p-4 overflow-hidden rounded-2xl border border-luxury-border/80 transition-all duration-300 cursor-pointer shadow-lg shine-effect ${game.thumbnail ? 'bg-luxury-surface' : gradClass} ${hoverGlow}`}>
+                        
+                        {game.thumbnail ? (
+                          <div className="absolute inset-0 bg-cover bg-center group-hover:scale-105 transition-transform duration-500" style={{ backgroundImage: `url(${game.thumbnail})` }} />
+                        ) : (
+                          <>
+                            <div className="absolute -bottom-10 w-28 h-28 rounded-full blur-2xl opacity-30 group-hover:scale-125 transition-transform duration-500 bg-[#3b82f6]" />
+                            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/5 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000 ease-out z-0" />
+                            {renderThumbnailPattern(game.id)}
+                          </>
+                        )}
+
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent z-10" />
+                        
+                        <div className="absolute top-3 left-3 z-15">
+                          <span className="text-[7px] font-extrabold tracking-wider text-white/90 bg-black/80 border border-white/10 px-2 py-0.5 rounded-full uppercase backdrop-blur-md">
+                            {game.tag}
+                          </span>
+                        </div>
+
+                        {!game.thumbnail && (
+                          <div className="flex-grow flex items-center justify-center mb-2 mt-6 z-15">
+                            <GameIcon id={game.id} className="w-18 h-18 sm:w-20 sm:h-20 group-hover:scale-115 group-hover:rotate-3 transition-transform duration-300 drop-shadow-[0_8px_20px_rgba(0,0,0,0.5)]" />
+                          </div>
+                        )}
+
+                        <div className="relative z-20 flex flex-col w-full bg-black/60 backdrop-blur-md p-2 rounded-xl border border-white/[0.08] mt-auto">
+                          <span className="font-sans font-black text-[10px] sm:text-xs tracking-wider text-white uppercase text-center truncate">
+                            {game.name}
+                          </span>
+                          <span className="text-[7px] font-black text-blue-400 group-hover:text-blue-300 uppercase tracking-widest mt-0.5 text-center transition-colors">
+                            {game.category === 'slots' ? 'Slot Machine' : game.category === 'sports' ? 'Live Sports' : 'Rain Original'}
+                          </span>
+                        </div>
+                      </div>
+                    </Link>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+
+        {/* Sidebar Feeds */}
         <div className="flex flex-col gap-6">
           
-          {/* Interactive Multi-Tab Feed */}
-          <Card className="bg-[#0b0f19]/40 border-luxury-border/60 flex flex-col h-[400px] overflow-hidden shadow-lg">
-            {/* Header Tabs */}
-            <div className="p-4 border-b border-luxury-border/60 flex items-center justify-between bg-black/25">
-              <div className="flex gap-1.5 bg-black/50 p-1 rounded-full border border-luxury-border/40">
+          {/* Live Bets Feed / Chat Container */}
+          <Card className="bg-[#0b0f19]/60 border-luxury-border/80 backdrop-blur-md flex flex-col h-[420px] overflow-hidden shadow-xl">
+            <div className="p-4 border-b border-luxury-border/60 flex items-center justify-between bg-black/40">
+              <div className="flex gap-1.5 bg-black/60 p-1 rounded-full border border-luxury-border/40">
                 <button
                   onClick={() => { playClick(); setActiveSidebarTab('wins'); }}
-                  className={`px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wider transition-all cursor-pointer ${
+                  className={`px-3.5 py-1.5 rounded-full text-[10px] font-black tracking-wider transition-all cursor-pointer ${
                     activeSidebarTab === 'wins'
                       ? 'bg-blue-600 text-white shadow-md'
-                      : 'text-neutral-500 hover:text-neutral-300'
+                      : 'text-neutral-400 hover:text-neutral-200'
                   }`}
                 >
                   Live Bets
                 </button>
                 <button
                   onClick={() => { playClick(); setActiveSidebarTab('chat'); }}
-                  className={`px-3 py-1.5 rounded-full text-[10px] font-bold tracking-wider transition-all cursor-pointer flex items-center gap-1 ${
+                  className={`px-3.5 py-1.5 rounded-full text-[10px] font-black tracking-wider transition-all cursor-pointer flex items-center gap-1.5 ${
                     activeSidebarTab === 'chat'
                       ? 'bg-blue-600 text-white shadow-md'
-                      : 'text-neutral-500 hover:text-neutral-300'
+                      : 'text-neutral-400 hover:text-neutral-200'
                   }`}
                 >
                   <MessageSquare className="w-3 h-3" />
@@ -1139,44 +937,43 @@ export default function Home() {
                 </button>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-ping"></span>
-                <span className="text-[9px] text-neutral-400 font-bold tracking-wider">Live</span>
+                <span className="h-2 w-2 rounded-full bg-emerald-400 animate-ping"></span>
+                <span className="text-[9px] text-neutral-300 font-extrabold uppercase tracking-wider">Real-time</span>
               </div>
             </div>
 
-            {/* Tab content */}
             <div className="flex-grow overflow-y-auto p-3 flex flex-col gap-2">
               {activeSidebarTab === 'wins' ? (
                 liveWins.map((win) => (
-                  <div key={win.id} className="flex justify-between items-center p-3 bg-black/20 hover:bg-black/35 transition-colors text-xs rounded-xl border border-luxury-border/20">
+                  <div key={win.id} className="flex justify-between items-center p-3 bg-black/40 hover:bg-black/60 transition-colors text-xs rounded-xl border border-luxury-border/30">
                     <div className="flex flex-col">
-                      <span className="text-neutral-300 font-bold">{win.username}</span>
-                      <span className="text-[10px] text-neutral-500 font-medium mt-0.5">on {win.game}</span>
+                      <span className="text-neutral-200 font-bold">{win.username}</span>
+                      <span className="text-[10px] text-neutral-400 font-medium mt-0.5">on {win.game}</span>
                     </div>
                     <div className="flex flex-col items-end">
-                      <span className="text-[10px] text-blue-400 font-extrabold uppercase tracking-wide bg-blue-500/5 px-1.5 py-0.5 rounded border border-blue-500/10">{win.multiplier}x</span>
-                      <span className="text-neutral-200 font-extrabold mt-1">+${win.payout.toLocaleString()}</span>
+                      <span className="text-[10px] text-blue-400 font-extrabold uppercase tracking-wide bg-blue-500/10 px-2 py-0.5 rounded border border-blue-500/20">{win.multiplier}x</span>
+                      <span className="text-emerald-400 font-extrabold mt-1">+${win.payout.toLocaleString()}</span>
                     </div>
                   </div>
                 ))
               ) : (
                 <div className="flex flex-col gap-2 h-full justify-between">
-                  <div className="flex-grow overflow-y-auto flex flex-col gap-2 pr-1 max-h-[270px]">
+                  <div className="flex-grow overflow-y-auto flex flex-col gap-2 pr-1 max-h-[290px]">
                     {chatMessages.length === 0 ? (
-                      <span className="text-[10px] text-neutral-600 text-center py-4">No messages yet.</span>
+                      <span className="text-[10px] text-neutral-500 text-center py-4">No messages yet.</span>
                     ) : (
                       chatMessages.map((msg) => (
-                        <div key={msg.id} className="flex flex-col gap-1 p-2.5 bg-black/20 hover:bg-black/30 border border-luxury-border/10 transition-colors rounded-xl animate-fade-in">
+                        <div key={msg.id} className="flex flex-col gap-1 p-2.5 bg-black/30 hover:bg-black/50 border border-luxury-border/20 transition-colors rounded-xl">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center gap-1.5">
-                              <span className="bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider">
+                              <span className="bg-blue-500/15 text-blue-400 border border-blue-500/30 text-[8px] font-black px-1.5 py-0.5 rounded-md uppercase tracking-wider">
                                 Lvl {msg.level}
                               </span>
                               <span className="text-[11px] text-neutral-200 font-bold">{msg.username}</span>
                             </div>
-                            <span className="text-[8px] text-neutral-500 font-medium">{msg.time}</span>
+                            <span className="text-[8px] text-neutral-400 font-medium">{msg.time}</span>
                           </div>
-                          <p className="text-[11px] text-neutral-400 leading-normal pl-0.5 break-words">
+                          <p className="text-[11px] text-neutral-300 leading-normal pl-0.5 break-words">
                             {msg.message}
                           </p>
                         </div>
@@ -1184,19 +981,18 @@ export default function Home() {
                     )}
                   </div>
 
-                  {/* Input field */}
-                  <form onSubmit={handleSendMessage} className="flex gap-1.5 pt-2 border-t border-luxury-border/30">
+                  <form onSubmit={handleSendMessage} className="flex gap-2 pt-2 border-t border-luxury-border/40">
                     <input
                       type="text"
-                      placeholder="Say something..."
+                      placeholder="Say something in chat..."
                       value={chatInput}
                       onChange={(e) => setChatInput(e.target.value)}
                       maxLength={100}
-                      className="flex-grow bg-black/40 border border-luxury-border/80 focus:border-blue-500/50 rounded-full px-3.5 py-2 text-xs text-white placeholder-neutral-500 focus:outline-none transition-all font-medium"
+                      className="flex-grow bg-black/50 border border-luxury-border/80 focus:border-blue-500/60 rounded-full px-4 py-2 text-xs text-white placeholder-neutral-500 focus:outline-none transition-all font-medium"
                     />
                     <button
                       type="submit"
-                      className="p-2 bg-blue-600 hover:bg-blue-500 text-white rounded-full transition-all active:scale-95 shrink-0 flex items-center justify-center border border-blue-400/20 cursor-pointer"
+                      className="p-2 bg-blue-600 hover:bg-blue-500 text-white rounded-full transition-all active:scale-95 shrink-0 flex items-center justify-center border border-blue-400/30 cursor-pointer"
                     >
                       <Send className="w-3.5 h-3.5" />
                     </button>
@@ -1206,44 +1002,44 @@ export default function Home() {
             </div>
           </Card>
 
-          {/* Leaderboard Preview */}
-          <Card className="bg-[#0b0f19]/40 border-luxury-border/60 shadow-lg">
-            <CardHeader className="p-4 border-b border-luxury-border/60 flex flex-row items-center justify-between bg-black/25">
+          {/* Leaderboard Preview Card */}
+          <Card className="bg-[#0b0f19]/60 border-luxury-border/80 backdrop-blur-md shadow-xl">
+            <CardHeader className="p-4 border-b border-luxury-border/60 flex flex-row items-center justify-between bg-black/40">
               <div>
-                <CardTitle className="text-xs font-extrabold flex items-center gap-2 tracking-widest text-neutral-300">
-                  <Trophy className="w-3.5 h-3.5 text-blue-400" />
-                  LEADERBOARD
+                <CardTitle className="text-xs font-extrabold flex items-center gap-2 tracking-widest text-neutral-200 uppercase">
+                  <Trophy className="w-3.5 h-3.5 text-amber-400" />
+                  VIP Leaderboard
                 </CardTitle>
-                <CardDescription className="text-[9px] mt-0.5">Top performing virtual accounts.</CardDescription>
+                <CardDescription className="text-[9px] text-neutral-400 mt-0.5">Top performing accounts this week.</CardDescription>
               </div>
               <Link href="/leaderboard" className="text-[9px] text-blue-400 hover:text-blue-300 hover:underline font-extrabold uppercase tracking-widest">
-                Full list
+                View All
               </Link>
             </CardHeader>
             <CardContent className="p-4 flex flex-col gap-2.5">
-              <div className="flex justify-between items-center text-xs p-2 bg-black/10 rounded-xl border border-luxury-border/20">
+              <div className="flex justify-between items-center text-xs p-2.5 bg-black/30 rounded-xl border border-luxury-border/30">
                 <div className="flex items-center gap-2.5">
-                  <span className="text-blue-400 font-black w-4 text-center">1</span>
-                  <div className="w-6 h-6 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-[9px] text-blue-400 font-extrabold">JD</div>
-                  <span className="text-neutral-300 font-bold">John_DuPont</span>
+                  <span className="text-amber-400 font-black w-4 text-center">1</span>
+                  <div className="w-6 h-6 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-center justify-center text-[9px] text-amber-400 font-extrabold">JD</div>
+                  <span className="text-neutral-200 font-bold">John_DuPont</span>
                 </div>
-                <span className="text-neutral-200 font-extrabold">$142,500</span>
+                <span className="text-emerald-400 font-extrabold">$142,500</span>
               </div>
-              <div className="flex justify-between items-center text-xs p-2 bg-black/10 rounded-xl border border-luxury-border/20">
+              <div className="flex justify-between items-center text-xs p-2.5 bg-black/30 rounded-xl border border-luxury-border/30">
                 <div className="flex items-center gap-2.5">
-                  <span className="text-neutral-400 font-black w-4 text-center">2</span>
-                  <div className="w-6 h-6 rounded-lg bg-neutral-500/10 border border-neutral-500/20 flex items-center justify-center text-[9px] text-neutral-400 font-extrabold">MR</div>
-                  <span className="text-neutral-300 font-bold">MelonMusk</span>
+                  <span className="text-slate-300 font-black w-4 text-center">2</span>
+                  <div className="w-6 h-6 rounded-lg bg-slate-500/10 border border-slate-500/30 flex items-center justify-center text-[9px] text-slate-300 font-extrabold">MR</div>
+                  <span className="text-neutral-200 font-bold">MelonMusk</span>
                 </div>
-                <span className="text-neutral-200 font-extrabold">$98,200</span>
+                <span className="text-emerald-400 font-extrabold">$98,200</span>
               </div>
-              <div className="flex justify-between items-center text-xs p-2 bg-black/10 rounded-xl border border-luxury-border/20">
+              <div className="flex justify-between items-center text-xs p-2.5 bg-black/30 rounded-xl border border-luxury-border/30">
                 <div className="flex items-center gap-2.5">
-                  <span className="text-neutral-400 font-black w-4 text-center">3</span>
-                  <div className="w-6 h-6 rounded-lg bg-amber-700/10 border border-amber-700/20 flex items-center justify-center text-[9px] text-amber-600 font-extrabold">RB</div>
-                  <span className="text-neutral-300 font-bold">Richard_Brans</span>
+                  <span className="text-amber-600 font-black w-4 text-center">3</span>
+                  <div className="w-6 h-6 rounded-lg bg-amber-700/10 border border-amber-700/30 flex items-center justify-center text-[9px] text-amber-500 font-extrabold">RB</div>
+                  <span className="text-neutral-200 font-bold">Richard_Brans</span>
                 </div>
-                <span className="text-neutral-200 font-extrabold">$76,150</span>
+                <span className="text-emerald-400 font-extrabold">$76,150</span>
               </div>
             </CardContent>
           </Card>

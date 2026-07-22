@@ -111,17 +111,68 @@ body {
 }
 
 .glass-panel {
-  background: rgba(10, 15, 29, 0.75);
+  background: rgba(15, 23, 42, 0.75);
   backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.glass-panel-luxury {
+  background: linear-gradient(135deg, rgba(22, 28, 54, 0.85) 0%, rgba(14, 18, 36, 0.95) 100%);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(76, 102, 219, 0.2);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+}
+
+.glass-card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card-hover:hover {
+  transform: translateY(-4px) scale(1.02);
+  border-color: rgba(96, 165, 250, 0.4);
+  box-shadow: 0 12px 30px -10px rgba(59, 130, 246, 0.3);
 }
 
 .glow-gold {
-  filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.3));
+  filter: drop-shadow(0 0 8px rgba(245, 158, 11, 0.4));
 }
 
 .glow-gold-large {
-  filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.2));
+  filter: drop-shadow(0 0 20px rgba(245, 158, 11, 0.3));
+}
+
+.glow-blue {
+  filter: drop-shadow(0 0 12px rgba(59, 130, 246, 0.5));
+}
+
+.glow-emerald {
+  filter: drop-shadow(0 0 12px rgba(16, 185, 129, 0.5));
+}
+
+.shine-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.shine-effect::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -60%;
+  width: 50%;
+  height: 200%;
+  background: linear-gradient(
+    to right,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.15) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+  transform: rotate(30deg);
+  transition: transform 0.6s ease-in-out;
+}
+
+.shine-effect:hover::after {
+  transform: translateX(350%) rotate(30deg);
 }
 
 /* Plinko bouncy pin effects */
@@ -184,4 +235,5 @@ input[type=number] {
   -moz-appearance: textfield;
   appearance: textfield;
 }
+
 

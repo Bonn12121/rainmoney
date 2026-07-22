@@ -499,7 +499,7 @@ const TRANSLATIONS = {
     allFixtures: 'All Fixtures',
     searchCountry: 'Search country or team...',
     allGroups: 'All Groups',
-    noFixtures: 'No upcoming fixtures found. Switch to "All Fixtures" to see past matches.',
+    noFixtures: 'No live or upcoming fixtures available from ESPN for this sport currently.',
     upcoming: 'Upcoming',
     live: 'Live',
     finished: 'Finished',
@@ -560,7 +560,7 @@ const TRANSLATIONS = {
     allFixtures: 'Tất Cả Trận Đấu',
     searchCountry: 'Tìm quốc gia hoặc đội bóng...',
     allGroups: 'Tất Cả Các Bảng',
-    noFixtures: 'Không tìm thấy trận đấu sắp tới nào. Hãy chuyển sang "Tất Cả Trận Đấu" để xem các trận đã qua.',
+    noFixtures: 'Hiện chưa có trận đấu nào từ ESPN cho môn thể thao này.',
     upcoming: 'Chưa diễn ra',
     live: 'Trực tiếp',
     finished: 'Đã kết thúc',
@@ -2104,78 +2104,6 @@ export default function SportsBettingGame() {
   const fetchEspnMatches = async (sportId: string) => {
     if (sportId === 'fifa-world-cup') return;
 
-    const simulatedSports = ['esports', 'boxing', 'cricket', 'rugby-union', 'rugby-league', 'wrestling'];
-    if (simulatedSports.includes(sportId)) {
-      const cacheKey = `rm_sports_sdb_cache_${sportId}`;
-      const stored = localStorage.getItem(cacheKey);
-      let mapped: RawMatch[] = [];
-      const now = new Date();
-      if (stored) {
-        mapped = JSON.parse(stored);
-        let changed = false;
-        mapped = mapped.map(match => {
-          const matchDate = parseMatchDate(match.local_date, match.stadium_id);
-          const matchEndDate = new Date(matchDate.getTime() + 120 * 60 * 1000);
-          
-          const isLiveNow = now >= matchDate && now < matchEndDate;
-          const hasEndedNow = now >= matchEndDate;
-          
-          let mChanged = false;
-          let homeScore = match.home_score;
-          let awayScore = match.away_score;
-          let finished = match.finished;
-          let timeElapsed = match.time_elapsed;
-
-          if (hasEndedNow && match.finished !== 'TRUE') {
-            if (sportId === 'boxing' || sportId === 'wrestling') {
-              homeScore = Math.random() < 0.5 ? "KO" : "Dec";
-              awayScore = "L";
-            } else if (sportId === 'cricket') {
-              homeScore = (185 + Math.floor(Math.random() * 30)).toString();
-              awayScore = (175 + Math.floor(Math.random() * 30)).toString();
-            } else {
-              homeScore = Math.random() < 0.5 ? "2" : "1";
-              awayScore = homeScore === "2" ? Math.floor(Math.random() * 2).toString() : "2";
-            }
-            finished = 'TRUE';
-            timeElapsed = 'finished';
-            mChanged = true;
-          } else if (isLiveNow) {
-            const elapsed = Math.floor((now.getTime() - matchDate.getTime()) / (60 * 1000));
-            timeElapsed = `Live - ${elapsed}m`;
-            if (Math.random() < 0.04) {
-              if (sportId === 'cricket') {
-                homeScore = `15${Math.floor(elapsed / 2)}/${Math.floor(elapsed / 15)} (${Math.floor(elapsed / 4)} ov)`;
-              } else {
-                if (Math.random() < 0.5) homeScore = (Number(homeScore) + 1).toString();
-                else awayScore = (Number(awayScore) + 1).toString();
-              }
-              mChanged = true;
-            }
-          }
-          
-          if (mChanged) {
-            changed = true;
-            return { ...match, home_score: homeScore, away_score: awayScore, finished, time_elapsed: timeElapsed };
-          }
-          return match;
-        });
-        
-        if (changed) {
-          localStorage.setItem(cacheKey, JSON.stringify(mapped));
-        }
-      } else {
-        mapped = generateSimulatedSportMatches(now, sportId);
-        localStorage.setItem(cacheKey, JSON.stringify(mapped));
-      }
-      
-      setSportMatches(prev => ({
-        ...prev,
-        [sportId]: mapped
-      }));
-      return;
-    }
-
     const config = SPORTS_CONFIGS.find(s => s.id === sportId);
     if (!config || !config.leagues || config.leagues.length === 0) return;
 
@@ -2197,8 +2125,6 @@ export default function SportsBettingGame() {
         const isLiveNow = now >= matchDate && now < matchEndDate;
         const hasEndedNow = now >= matchEndDate;
 
-        let homeScore = match.home_score;
-        let awayScore = match.away_score;
         let finished = match.finished;
         let timeElapsed = match.time_elapsed;
         let changed = false;
@@ -2210,21 +2136,11 @@ export default function SportsBettingGame() {
         } else if (isLiveNow) {
           const elapsed = Math.floor((now.getTime() - matchDate.getTime()) / (60 * 1000));
           timeElapsed = `${elapsed}m`;
-          
-          if (Math.random() < 0.05) {
-            if (sportId === 'basketball') {
-              homeScore = (Number(homeScore) + Math.floor(Math.random() * 3 + 1)).toString();
-              awayScore = (Number(awayScore) + Math.floor(Math.random() * 3 + 1)).toString();
-            } else {
-              if (Math.random() < 0.5) homeScore = (Number(homeScore) + 1).toString();
-              else awayScore = (Number(awayScore) + 1).toString();
-            }
-            changed = true;
-          }
+          changed = true;
         }
 
         if (changed) {
-          return { ...match, home_score: homeScore, away_score: awayScore, finished, time_elapsed: timeElapsed };
+          return { ...match, finished, time_elapsed: timeElapsed };
         }
         return match;
       });
@@ -2257,11 +2173,6 @@ export default function SportsBettingGame() {
       const results = await Promise.all(fetchPromises);
       let allMatches = results.flat();
 
-      // If ESPN returns 0 events for this sport (e.g. off season), fallback to simulated match generator
-      if (allMatches.length === 0) {
-        allMatches = generateSimulatedSportMatches(now, sportId);
-      }
-
       // Sort chronologically (LIVE first, then upcoming by start time)
       const sorted = allMatches.sort((a: any, b: any) => {
         const aDate = parseMatchDate(a.local_date, a.stadium_id);
@@ -2281,11 +2192,10 @@ export default function SportsBettingGame() {
       localStorage.setItem(cacheKey, JSON.stringify(sorted));
       localStorage.setItem(cacheTimeKey, now.getTime().toString());
     } catch (err) {
-      console.error(`Failed to fetch generic ESPN matches for ${sportId}:`, err);
-      const fallback = generateSimulatedSportMatches(now, sportId);
+      console.error(`Failed to fetch ESPN matches for ${sportId}:`, err);
       setSportMatches(prev => ({
         ...prev,
-        [sportId]: fallback
+        [sportId]: []
       }));
     }
   };
