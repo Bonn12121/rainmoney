@@ -5,48 +5,73 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const sport = searchParams.get('sport') || 'nba';
+    const sportParam = searchParams.get('sport') || 'nba';
+    const leagueParam = searchParams.get('league');
 
-    // Map common sport IDs to their ESPN API paths
-    let espnSportPath = '';
-    let espnLeaguePath = '';
+    let espnSportPath = searchParams.get('customSport') || '';
+    let espnLeaguePath = searchParams.get('customLeague') || leagueParam || '';
 
-    if (sport === 'nba') {
-      espnSportPath = 'basketball';
-      espnLeaguePath = 'nba';
-    } else if (sport === 'nfl') {
-      espnSportPath = 'football';
-      espnLeaguePath = 'nfl';
-    } else if (sport === 'mlb') {
-      espnSportPath = 'baseball';
-      espnLeaguePath = 'mlb';
-    } else if (sport === 'nhl') {
-      espnSportPath = 'hockey';
-      espnLeaguePath = 'nhl';
-    } else if (sport === 'ufc' || sport === 'mma') {
-      espnSportPath = 'mma';
-      espnLeaguePath = 'ufc';
-    } else if (sport === 'tennis') {
-      espnSportPath = 'tennis';
-      espnLeaguePath = 'atp';
-    } else if (sport === 'golf') {
-      espnSportPath = 'golf';
-      espnLeaguePath = 'pga';
-    } else if (sport === 'soccer-epl') {
-      espnSportPath = 'soccer';
-      espnLeaguePath = 'eng.1';
-    } else if (sport === 'soccer-laliga') {
-      espnSportPath = 'soccer';
-      espnLeaguePath = 'esp.1';
-    } else {
-      // Allow custom sport/league combinations passed in search params for full public-espn-api compliance!
-      const customSport = searchParams.get('customSport');
-      const customLeague = searchParams.get('customLeague');
-      if (customSport && customLeague) {
-        espnSportPath = customSport.replace(/[^a-zA-Z0-9.-]/g, '');
-        espnLeaguePath = customLeague.replace(/[^a-zA-Z0-9.-]/g, '');
+    if (!espnSportPath) {
+      // Direct sport/league parameters passed
+      if (sportParam.includes('/')) {
+        const parts = sportParam.split('/');
+        espnSportPath = parts[0];
+        espnLeaguePath = parts[1];
+      } else if (leagueParam) {
+        espnSportPath = sportParam;
+        espnLeaguePath = leagueParam;
       } else {
-        return NextResponse.json({ error: 'Unsupported sport' }, { status: 400 });
+        // Predefined sport mappings
+        const mapping: Record<string, [string, string]> = {
+          'nba': ['basketball', 'nba'],
+          'wnba': ['basketball', 'wnba'],
+          'basketball-ncaa-m': ['basketball', 'mens-college-basketball'],
+          'basketball-ncaa-w': ['basketball', 'womens-college-basketball'],
+          'basketball-g-league': ['basketball', 'nba-g-league'],
+          'nfl': ['football', 'nfl'],
+          'football-nfl': ['football', 'nfl'],
+          'football-college': ['football', 'college-football'],
+          'football-cfl': ['football', 'cfl'],
+          'football-ufl': ['football', 'ufl'],
+          'mlb': ['baseball', 'mlb'],
+          'nhl': ['hockey', 'nhl'],
+          'ufc': ['mma', 'ufc'],
+          'mma': ['mma', 'ufc'],
+          'tennis': ['tennis', 'atp'],
+          'tennis-atp': ['tennis', 'atp'],
+          'tennis-wta': ['tennis', 'wta'],
+          'golf': ['golf', 'pga'],
+          'golf-pga': ['golf', 'pga'],
+          'golf-lpga': ['golf', 'lpga'],
+          'golf-liv': ['golf', 'liv'],
+          'soccer': ['soccer', 'all'],
+          'soccer-all': ['soccer', 'all'],
+          'soccer-epl': ['soccer', 'eng.1'],
+          'soccer-laliga': ['soccer', 'esp.1'],
+          'soccer-bundesliga': ['soccer', 'ger.1'],
+          'soccer-seriea': ['soccer', 'ita.1'],
+          'soccer-ligue1': ['soccer', 'fra.1'],
+          'soccer-mls': ['soccer', 'usa.1'],
+          'soccer-ucl': ['soccer', 'uefa.champions'],
+          'soccer-uel': ['soccer', 'uefa.europa'],
+          'soccer-worldcup': ['soccer', 'fifa.world'],
+          'racing-f1': ['racing', 'f1'],
+          'racing-indycar': ['racing', 'irl'],
+          'racing-nascar': ['racing', 'nascar-premier'],
+          'lacrosse-pll': ['lacrosse', 'pll'],
+          'lacrosse-nll': ['lacrosse', 'nll'],
+          'afl': ['australian-football', 'afl'],
+          'volleyball-m': ['volleyball', 'mens-college-volleyball'],
+          'volleyball-w': ['volleyball', 'womens-college-volleyball'],
+        };
+
+        if (mapping[sportParam]) {
+          [espnSportPath, espnLeaguePath] = mapping[sportParam];
+        } else {
+          // Default fallback assume sportParam is sport path and leagueParam or all
+          espnSportPath = sportParam.replace(/[^a-zA-Z0-9.-]/g, '');
+          espnLeaguePath = (leagueParam || 'all').replace(/[^a-zA-Z0-9.-]/g, '');
+        }
       }
     }
 

@@ -291,59 +291,92 @@ const getSecondHalfScore = (match: RawMatch): { home: number, away: number } => 
 
 const SLIDER_DATA = [
   {
-    image: 'https://images.pexels.com/photos/38281596/pexels-photo-38281596.jpeg',
-    badge: 'WORLD CUP 2026',
-    titleHighlight: '100% PROFIT BOOST',
-    titleRest: 'ON HIGH-STAKES FIXTURES',
-    desc: 'Double your payout on high-odds underdogs and high stakes matches ($1,000+). Settle bets instantly based on live tournament scoreboards.',
-    gradient: 'linear-gradient(to right, rgba(25, 15, 0, 0.95) 20%, rgba(180, 120, 30, 0.3) 65%, rgba(0, 0, 0, 0.2))',
-    badgeBg: 'from-amber-600 to-yellow-500',
-    titleColor: 'text-yellow-400',
-    indicatorColor: 'bg-amber-500 scale-110 shadow-[0_0_8px_#f59e0b]'
-  },
-  {
-    image: 'https://images.pexels.com/photos/38273820/pexels-photo-38273820.jpeg',
-    badge: 'EARLY CASHOUT INSURANCE',
-    titleHighlight: '2-0 LEAD WINS',
-    titleRest: 'AUTOMATIC PAYOUT AT ANY MINUTE',
-    desc: 'Back your favorite team to win. If they lead by 2 goals at any time during a live match, cash out immediately for a guaranteed full payout!',
-    gradient: 'linear-gradient(to right, rgba(0, 20, 40, 0.95) 20%, rgba(0, 120, 180, 0.3) 65%, rgba(0, 0, 0, 0.2))',
+    image: 'https://images.unsplash.com/photo-1522778119026-d647f0596c20?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+    badge: 'WORLD SOCCER LEAGUES',
+    titleHighlight: '260+ LEAGUES LIVE',
+    titleRest: 'PREMIER LEAGUE, LALIGA & UCL',
+    desc: 'Bet on live fixtures from over 260 top global soccer leagues. Enjoy early cashout insurance on 2-0 leads and dynamic odds update!',
+    gradient: 'linear-gradient(to right, rgba(15, 23, 42, 0.95) 20%, rgba(59, 130, 246, 0.3) 65%, rgba(0, 0, 0, 0.2))',
     badgeBg: 'from-blue-600 to-cyan-500',
     titleColor: 'text-cyan-400',
     indicatorColor: 'bg-cyan-500 scale-110 shadow-[0_0_8px_#06b6d4]'
   },
   {
-    image: 'https://images.pexels.com/photos/38401511/pexels-photo-38401511.jpeg',
-    badge: 'GUESS THE SECOND HALF',
-    titleHighlight: 'UP TO 150x ODDS',
-    titleRest: 'ON CORRECT SCORE PREDICTION',
-    desc: 'Step up to the challenge: type in your predicted 2nd half score directly. Highly improbable scorelines yield massive multipliers!',
+    image: 'https://images.unsplash.com/photo-1585032083927-c7b26d6c1d07?q=80&w=1005&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+    badge: 'NBA & HOOPS',
+    titleHighlight: 'HIGH-STAKES HOOPS',
+    titleRest: 'NBA, WNBA & NCAA ACTION',
+    desc: 'Catch every buzzer beater live! Real-time score updates, point spreads, and high-payout accumulators for top basketball action.',
+    gradient: 'linear-gradient(to right, rgba(25, 15, 0, 0.95) 20%, rgba(245, 158, 11, 0.3) 65%, rgba(0, 0, 0, 0.2))',
+    badgeBg: 'from-amber-600 to-yellow-500',
+    titleColor: 'text-amber-400',
+    indicatorColor: 'bg-amber-500 scale-110 shadow-[0_0_8px_#f59e0b]'
+  },
+  {
+    image: 'https://images.unsplash.com/flagged/photo-1574005280900-3ff489fa1f70?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+    badge: 'BOXING & MMA SHOWDOWN',
+    titleHighlight: 'KNOCKOUT SPECIALS',
+    titleRest: 'UFC & WORLD HEAVYWEIGHT BOUTS',
+    desc: 'Back your champion ring side. High knockout multipliers and method-of-victory betting on all marquee fight night events.',
+    gradient: 'linear-gradient(to right, rgba(30, 10, 10, 0.95) 20%, rgba(220, 38, 38, 0.3) 65%, rgba(0, 0, 0, 0.2))',
+    badgeBg: 'from-red-600 to-rose-500',
+    titleColor: 'text-red-400',
+    indicatorColor: 'bg-red-500 scale-110 shadow-[0_0_8px_#ef4444]'
+  },
+  {
+    image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+    badge: 'ESPORTS ARENA',
+    titleHighlight: 'PRO GAMING LEAGUES',
+    titleRest: 'LOL, CS2, DOTA 2 & VALORANT',
+    desc: 'Wager on international eSports tournaments. Fast map settlement and enhanced odds on world-class gaming teams.',
     gradient: 'linear-gradient(to right, rgba(20, 0, 35, 0.95) 20%, rgba(140, 30, 180, 0.3) 65%, rgba(0, 0, 0, 0.2))',
     badgeBg: 'from-purple-600 to-fuchsia-500',
     titleColor: 'text-fuchsia-400',
     indicatorColor: 'bg-fuchsia-500 scale-110 shadow-[0_0_8px_#d946ef]'
   },
   {
-    image: 'https://images.pexels.com/photos/38104077/pexels-photo-38104077.jpeg',
-    badge: 'NFL SEASON SHIELD',
-    titleHighlight: 'GRIDIRON SPECIALS',
-    titleRest: 'AND REAL-TIME STATS',
-    desc: 'Back your gridiron picks now. Simulated quarter games with realistic score updates keep the excitement alive 24/7.',
-    gradient: 'linear-gradient(to right, rgba(15, 23, 42, 0.95) 20%, rgba(59, 130, 246, 0.3) 65%, rgba(0, 0, 0, 0.2))',
-    badgeBg: 'from-blue-600 to-indigo-500',
-    titleColor: 'text-blue-400',
-    indicatorColor: 'bg-blue-500 scale-110 shadow-[0_0_8px_#3b82f6]'
+    image: 'https://images.unsplash.com/photo-1560692830-04adc2f31119?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+    badge: 'HIGH SPEED RACING',
+    titleHighlight: 'FORMULA 1 & INDYCAR',
+    titleRest: 'GRIDIRON GRAND PRIX ACTION',
+    desc: 'Feel the adrenaline on the track! Bet on pole position winners, podium finishers, and race champions live.',
+    gradient: 'linear-gradient(to right, rgba(20, 20, 20, 0.95) 20%, rgba(234, 179, 8, 0.3) 65%, rgba(0, 0, 0, 0.2))',
+    badgeBg: 'from-yellow-600 to-amber-500',
+    titleColor: 'text-yellow-400',
+    indicatorColor: 'bg-yellow-500 scale-110 shadow-[0_0_8px_#eab308]'
   },
   {
-    image: 'https://images.pexels.com/photos/39362/the-ball-stadion-football-the-pitch-39362.jpeg',
-    badge: 'ESPORTS ARENA',
-    titleHighlight: 'PRO LEAGUE WAGERS',
-    titleRest: 'ON POPULAR MATCHUPS',
-    desc: 'Predict the absolute champions of Esports leagues. Real-time odds dynamically adjusted on your favorite MOBA and FPS tournaments.',
-    gradient: 'linear-gradient(to right, rgba(24, 24, 27, 0.95) 20%, rgba(239, 68, 68, 0.3) 65%, rgba(0, 0, 0, 0.2))',
-    badgeBg: 'from-red-600 to-rose-500',
-    titleColor: 'text-rose-400',
-    indicatorColor: 'bg-rose-500 scale-110 shadow-[0_0_8px_#f43f5e]'
+    image: 'https://images.unsplash.com/photo-1595210382266-2d0077c1f541?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+    badge: 'WORLD CRICKET',
+    titleHighlight: 'IPL & ICC WORLD CUP',
+    titleRest: 'SUPER OVER MULTIPLIERS',
+    desc: 'Live run rates, over-by-over betting, and IPL tournament specials. Experience non-stop cricket action worldwide.',
+    gradient: 'linear-gradient(to right, rgba(5, 30, 20, 0.95) 20%, rgba(16, 185, 129, 0.3) 65%, rgba(0, 0, 0, 0.2))',
+    badgeBg: 'from-emerald-600 to-teal-500',
+    titleColor: 'text-emerald-400',
+    indicatorColor: 'bg-emerald-500 scale-110 shadow-[0_0_8px_#10b981]'
+  },
+  {
+    image: 'https://images.unsplash.com/photo-1611374243147-44a702c2d44c?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+    badge: 'PRO GOLF TOURS',
+    titleHighlight: 'PGA, LPGA & LIV GOLF',
+    titleRest: 'TOURNAMENT CHAMPIONS',
+    desc: 'Track round scores stroke-by-stroke. Outright tournament winner bets and head-to-head matchup multipliers.',
+    gradient: 'linear-gradient(to right, rgba(10, 30, 10, 0.95) 20%, rgba(34, 197, 94, 0.3) 65%, rgba(0, 0, 0, 0.2))',
+    badgeBg: 'from-green-600 to-emerald-500',
+    titleColor: 'text-green-400',
+    indicatorColor: 'bg-green-500 scale-110 shadow-[0_0_8px_#22c55e]'
+  },
+  {
+    image: 'https://images.unsplash.com/flagged/photo-1550585477-a025700d7fce?q=80&w=1171&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+    badge: 'NHL ICE HOCKEY',
+    titleHighlight: 'STANLEY CUP SHOWDOWN',
+    titleRest: 'FAST PUCK ACTION',
+    desc: 'Puck line, total goals, and period betting on live NHL games. Instant settlements as goals hit the net.',
+    gradient: 'linear-gradient(to right, rgba(10, 25, 45, 0.95) 20%, rgba(14, 165, 233, 0.3) 65%, rgba(0, 0, 0, 0.2))',
+    badgeBg: 'from-sky-600 to-blue-500',
+    titleColor: 'text-sky-400',
+    indicatorColor: 'bg-sky-500 scale-110 shadow-[0_0_8px_#0ea5e9]'
   }
 ];
 
@@ -1144,74 +1177,185 @@ const generateEsportsMatches = (clientTime: Date): RawMatch[] => {
 
 const SPORTS_CONFIGS = [
   { 
-    id: 'fifa-world-cup', 
-    name: 'FIFA World Cup', 
-    nameVi: 'FIFA World Cup', 
-    icon: '🏆',
-    leagues: []
-  },
-  { 
-    id: 'football', 
-    name: 'Football', 
+    id: 'soccer', 
+    name: 'Soccer', 
     nameVi: 'Bóng đá', 
     icon: '⚽',
     leagues: [
+      { id: 'soccer-all', name: 'All 260+ Leagues', nameVi: 'Tất cả 260+ Giải đấu' },
       { id: 'soccer-epl', name: 'Premier League', nameVi: 'Ngoại hạng Anh' },
-      { id: 'soccer-laliga', name: 'LaLiga', nameVi: 'LaLiga' }
+      { id: 'soccer-laliga', name: 'LaLiga', nameVi: 'LaLiga (Tây Ban Nha)' },
+      { id: 'soccer-bundesliga', name: 'Bundesliga', nameVi: 'Bundesliga (Đức)' },
+      { id: 'soccer-seriea', name: 'Serie A', nameVi: 'Serie A (Ý)' },
+      { id: 'soccer-ligue1', name: 'Ligue 1', nameVi: 'Ligue 1 (Pháp)' },
+      { id: 'soccer-mls', name: 'MLS', nameVi: 'MLS (Nhà nghề Mỹ)' },
+      { id: 'soccer-ucl', name: 'Champions League', nameVi: 'Cúp C1 Châu Âu' },
+      { id: 'soccer-uel', name: 'Europa League', nameVi: 'Cúp C2 Châu Âu' },
+      { id: 'soccer-worldcup', name: 'World Cup', nameVi: 'World Cup' }
     ]
   },
   {
-    id: 'nfl',
-    name: 'NFL',
-    nameVi: 'Bóng bầu dục (NFL)',
+    id: 'american-football',
+    name: 'Football',
+    nameVi: 'Bóng bầu dục (Football)',
     icon: '🏈',
     leagues: [
-      { id: 'nfl', name: 'NFL', nameVi: 'NFL' }
+      { id: 'football-nfl', name: 'NFL', nameVi: 'NFL' },
+      { id: 'football-college', name: 'College Football', nameVi: 'NCAA College Football' },
+      { id: 'football-cfl', name: 'CFL', nameVi: 'CFL (Canada)' },
+      { id: 'football-ufl', name: 'UFL', nameVi: 'UFL' }
     ]
   },
   {
-    id: 'nba',
-    name: 'NBA',
-    nameVi: 'Bóng rổ (NBA)',
+    id: 'basketball',
+    name: 'Basketball',
+    nameVi: 'Bóng rổ',
     icon: '🏀',
     leagues: [
-      { id: 'nba', name: 'NBA', nameVi: 'NBA' }
+      { id: 'nba', name: 'NBA', nameVi: 'NBA' },
+      { id: 'wnba', name: 'WNBA', nameVi: 'WNBA' },
+      { id: 'basketball-ncaa-m', name: 'NCAA Men', nameVi: 'NCAA Nam' },
+      { id: 'basketball-ncaa-w', name: 'NCAA Women', nameVi: 'NCAA Nữ' },
+      { id: 'basketball-g-league', name: 'G League', nameVi: 'G League' }
     ]
   },
   {
-    id: 'mlb',
-    name: 'MLB',
-    nameVi: 'Bóng chày (MLB)',
+    id: 'baseball',
+    name: 'Baseball',
+    nameVi: 'Bóng chày',
     icon: '⚾',
     leagues: [
       { id: 'mlb', name: 'MLB', nameVi: 'MLB' }
     ]
   },
   {
-    id: 'nhl',
-    name: 'NHL',
-    nameVi: 'Khúc côn cầu (NHL)',
+    id: 'hockey',
+    name: 'Hockey',
+    nameVi: 'Khúc côn cầu',
     icon: '🏒',
     leagues: [
       { id: 'nhl', name: 'NHL', nameVi: 'NHL' }
     ]
   },
   {
-    id: 'tennis',
-    name: 'Tennis',
-    nameVi: 'Quần vợt (ATP)',
-    icon: '🎾',
-    leagues: [
-      { id: 'tennis', name: 'ATP Tennis', nameVi: 'Quần vợt ATP' }
-    ]
-  },
-  {
-    id: 'ufc',
-    name: 'UFC',
-    nameVi: 'Võ thuật (UFC)',
+    id: 'mma',
+    name: 'MMA',
+    nameVi: 'Võ thuật MMA',
     icon: '🥊',
     leagues: [
       { id: 'ufc', name: 'UFC', nameVi: 'UFC' }
+    ]
+  },
+  {
+    id: 'boxing',
+    name: 'Boxing',
+    nameVi: 'Quyền Anh',
+    icon: '🥊',
+    leagues: [
+      { id: 'boxing-events', name: 'Boxing Events', nameVi: 'Các trận Boxing' }
+    ]
+  },
+  {
+    id: 'golf',
+    name: 'Golf',
+    nameVi: 'Golf',
+    icon: '⛳',
+    leagues: [
+      { id: 'golf-pga', name: 'PGA Tour', nameVi: 'PGA Tour' },
+      { id: 'golf-lpga', name: 'LPGA Tour', nameVi: 'LPGA Tour' },
+      { id: 'golf-liv', name: 'LIV Golf', nameVi: 'LIV Golf' }
+    ]
+  },
+  {
+    id: 'tennis',
+    name: 'Tennis',
+    nameVi: 'Quần vợt',
+    icon: '🎾',
+    leagues: [
+      { id: 'tennis-atp', name: 'ATP Tour', nameVi: 'ATP Tour' },
+      { id: 'tennis-wta', name: 'WTA Tour', nameVi: 'WTA Tour' },
+      { id: 'tennis-grandslam', name: 'Grand Slams', nameVi: 'Grand Slams' }
+    ]
+  },
+  {
+    id: 'racing',
+    name: 'Racing',
+    nameVi: 'Đua xe',
+    icon: '🏎',
+    leagues: [
+      { id: 'racing-f1', name: 'Formula 1', nameVi: 'Formula 1' },
+      { id: 'racing-indycar', name: 'IndyCar', nameVi: 'IndyCar' },
+      { id: 'racing-nascar', name: 'NASCAR', nameVi: 'NASCAR' }
+    ]
+  },
+  {
+    id: 'rugby-union',
+    name: 'Rugby Union',
+    nameVi: 'Bóng bầu dục Union',
+    icon: '🏉',
+    leagues: [
+      { id: 'rugby-worldcup', name: 'World Cup', nameVi: 'Rugby World Cup' },
+      { id: 'rugby-sixnations', name: 'Six Nations', nameVi: 'Six Nations' }
+    ]
+  },
+  {
+    id: 'rugby-league',
+    name: 'Rugby League',
+    nameVi: 'Bóng bầu dục League',
+    icon: '🏉',
+    leagues: [
+      { id: 'rugby-nrl', name: 'NRL', nameVi: 'NRL' },
+      { id: 'rugby-superleague', name: 'Super League', nameVi: 'Super League' }
+    ]
+  },
+  {
+    id: 'cricket',
+    name: 'Cricket',
+    nameVi: 'Bóng quyền (Cricket)',
+    icon: '🏏',
+    leagues: [
+      { id: 'cricket-ipl', name: 'IPL', nameVi: 'IPL' },
+      { id: 'cricket-icc', name: 'ICC World Cup', nameVi: 'ICC World Cup' },
+      { id: 'cricket-bbl', name: 'BBL', nameVi: 'Big Bash League' },
+      { id: 'cricket-psl', name: 'PSL', nameVi: 'Pakistan Super League' }
+    ]
+  },
+  {
+    id: 'lacrosse',
+    name: 'Lacrosse',
+    nameVi: 'Bóng lưới Lacrosse',
+    icon: '🥍',
+    leagues: [
+      { id: 'lacrosse-pll', name: 'PLL', nameVi: 'Premier Lacrosse League' },
+      { id: 'lacrosse-nll', name: 'NLL', nameVi: 'National Lacrosse League' }
+    ]
+  },
+  {
+    id: 'afl',
+    name: 'Australian Football',
+    nameVi: 'Bóng bầu dục Úc (AFL)',
+    icon: '🏉',
+    leagues: [
+      { id: 'afl', name: 'AFL', nameVi: 'AFL' }
+    ]
+  },
+  {
+    id: 'volleyball',
+    name: 'Volleyball',
+    nameVi: 'Bóng chuyền',
+    icon: '🏐',
+    leagues: [
+      { id: 'volleyball-m', name: 'FIVB / NCAA Men', nameVi: 'FIVB / NCAA Nam' },
+      { id: 'volleyball-w', name: 'FIVB / NCAA Women', nameVi: 'FIVB / NCAA Nữ' }
+    ]
+  },
+  {
+    id: 'wrestling',
+    name: 'Wrestling',
+    nameVi: 'Đấu vật (WWE)',
+    icon: '🤼',
+    leagues: [
+      { id: 'wrestling-wwe', name: 'WWE', nameVi: 'WWE Events' }
     ]
   },
   {
@@ -1219,9 +1363,137 @@ const SPORTS_CONFIGS = [
     name: 'Esports',
     nameVi: 'Thể thao điện tử',
     icon: '🎮',
-    leagues: []
+    leagues: [
+      { id: 'esports-lol', name: 'LoL', nameVi: 'Liên Minh Huyền Thoại' },
+      { id: 'esports-csgo', name: 'CS2', nameVi: 'Counter-Strike 2' },
+      { id: 'esports-dota', name: 'Dota 2', nameVi: 'Dota 2' },
+      { id: 'esports-val', name: 'Valorant', nameVi: 'Valorant' }
+    ]
   }
 ];
+
+const SIMULATED_SPORT_SCHEDULES: Record<string, Array<{ home: string; homeAbbr: string; away: string; awayAbbr: string; type: string }>> = {
+  'boxing': [
+    { home: 'Tyson Fury', homeAbbr: 'FURY', away: 'Oleksandr Usyk', awayAbbr: 'USYK', type: 'WBC Heavyweight' },
+    { home: 'Canelo Alvarez', homeAbbr: 'CAN', away: 'Terence Crawford', awayAbbr: 'CRAW', type: 'Super Middleweight' },
+    { home: 'Naoya Inoue', homeAbbr: 'INO', away: 'Stephen Fulton', awayAbbr: 'FUL', type: 'Super Bantamweight' },
+    { home: 'Anthony Joshua', homeAbbr: 'AJ', away: 'Deontay Wilder', awayAbbr: 'WILD', type: 'Heavyweight Bout' },
+    { home: 'Gervonta Davis', homeAbbr: 'TANK', away: 'Vasiliy Lomachenko', awayAbbr: 'LOMA', type: 'Lightweight Title' }
+  ],
+  'cricket': [
+    { home: 'Mumbai Indians', homeAbbr: 'MI', away: 'Chennai Super Kings', awayAbbr: 'CSK', type: 'IPL' },
+    { home: 'India', homeAbbr: 'IND', away: 'Australia', awayAbbr: 'AUS', type: 'ICC World Cup' },
+    { home: 'Royal Challengers Bengaluru', homeAbbr: 'RCB', away: 'Kolkata Knight Riders', awayAbbr: 'KKR', type: 'IPL' },
+    { home: 'Sydney Sixers', homeAbbr: 'SYS', away: 'Melbourne Stars', awayAbbr: 'MLS', type: 'BBL' },
+    { home: 'Lahore Qalandars', homeAbbr: 'LQ', away: 'Karachi Kings', awayAbbr: 'KK', type: 'PSL' }
+  ],
+  'rugby-union': [
+    { home: 'New Zealand All Blacks', homeAbbr: 'NZ', away: 'South Africa Springboks', awayAbbr: 'RSA', type: 'World Cup' },
+    { home: 'England', homeAbbr: 'ENG', away: 'France', awayAbbr: 'FRA', type: 'Six Nations' },
+    { home: 'Ireland', homeAbbr: 'IRE', away: 'Wales', awayAbbr: 'WAL', type: 'Six Nations' },
+    { home: 'Australia Wallabies', homeAbbr: 'AUS', away: 'Argentina Pumas', awayAbbr: 'ARG', type: 'Rugby Championship' }
+  ],
+  'rugby-league': [
+    { home: 'Penrith Panthers', homeAbbr: 'PEN', away: 'Brisbane Broncos', awayAbbr: 'BRI', type: 'NRL' },
+    { home: 'St Helens', homeAbbr: 'STH', away: 'Wigan Warriors', awayAbbr: 'WIG', type: 'Super League' },
+    { home: 'Sydney Roosters', homeAbbr: 'SYD', away: 'South Sydney Rabbitohs', awayAbbr: 'SOU', type: 'NRL' }
+  ],
+  'wrestling': [
+    { home: 'Cody Rhodes', homeAbbr: 'CODY', away: 'Roman Reigns', awayAbbr: 'ROMAN', type: 'WWE Undisputed Title' },
+    { home: 'Seth Rollins', homeAbbr: 'SETH', away: 'CM Punk', awayAbbr: 'PUNK', type: 'WWE Heavyweight Title' },
+    { home: 'Rhea Ripley', homeAbbr: 'RHEA', away: 'Charlotte Flair', awayAbbr: 'CHAR', type: 'WWE Women\'s Title' },
+    { home: 'LA Knight', homeAbbr: 'LAK', away: 'Logan Paul', awayAbbr: 'LOGAN', type: 'WWE US Championship' }
+  ],
+  'esports': ESPORTS_REAL_SCHEDULE
+};
+
+const generateSimulatedSportMatches = (clientTime: Date, sportId: string): RawMatch[] => {
+  const schedList = SIMULATED_SPORT_SCHEDULES[sportId] || [
+    { home: 'Team Alpha', homeAbbr: 'ALP', away: 'Team Beta', awayAbbr: 'BET', type: sportId.toUpperCase() },
+    { home: 'Red Star', homeAbbr: 'RED', away: 'Blue Wave', awayAbbr: 'BLU', type: sportId.toUpperCase() },
+    { home: 'Thunder FC', homeAbbr: 'THU', away: 'Lightning SC', awayAbbr: 'LGT', type: sportId.toUpperCase() }
+  ];
+
+  const matches: RawMatch[] = [];
+  const offsets = [-180, -90, -15, 30, 120, 300, 720];
+
+  for (let i = 0; i < schedList.length; i++) {
+    const sched = schedList[i];
+    const offsetMins = offsets[i % offsets.length];
+    const matchTime = new Date(clientTime.getTime() + offsetMins * 60 * 1000);
+
+    const month = (matchTime.getMonth() + 1).toString().padStart(2, '0');
+    const day = matchTime.getDate().toString().padStart(2, '0');
+    const year = matchTime.getFullYear();
+    const hours = matchTime.getHours().toString().padStart(2, '0');
+    const minutes = matchTime.getMinutes().toString().padStart(2, '0');
+    const localDateStr = `${month}/${day}/${year} ${hours}:${minutes}`;
+
+    const isLive = offsetMins < 0 && offsetMins > -120;
+    const isFinished = offsetMins <= -120;
+
+    let homeScore = "0";
+    let awayScore = "0";
+    let finished = "FALSE";
+    let timeElapsed = "notstarted";
+
+    if (isFinished) {
+      if (sportId === 'boxing' || sportId === 'wrestling') {
+        homeScore = Math.random() < 0.5 ? "KO" : "Dec";
+        awayScore = homeScore === "KO" ? "L" : "L";
+      } else if (sportId === 'cricket') {
+        homeScore = (180 + Math.floor(Math.random() * 40)).toString();
+        awayScore = (170 + Math.floor(Math.random() * 40)).toString();
+      } else {
+        homeScore = Math.floor(Math.random() * 3 + 1).toString();
+        awayScore = Math.floor(Math.random() * 3).toString();
+      }
+      finished = "TRUE";
+      timeElapsed = "finished";
+    } else if (isLive) {
+      const elapsed = Math.abs(offsetMins);
+      if (sportId === 'cricket') {
+        homeScore = `145/3 (${Math.floor(elapsed / 6)} ov)`;
+        awayScore = `142/5`;
+      } else {
+        homeScore = Math.random() < 0.5 ? "1" : "0";
+        awayScore = homeScore === "1" ? "0" : "1";
+      }
+      timeElapsed = `Live ${elapsed}m`;
+    }
+
+    matches.push({
+      id: `sim-${sportId}-${i + 1}`,
+      home_team_id: sched.home,
+      away_team_id: sched.away,
+      home_score: homeScore,
+      away_score: awayScore,
+      home_scorers: "null",
+      away_scorers: "null",
+      group: sched.type,
+      matchday: "1",
+      local_date: localDateStr,
+      finished: finished,
+      time_elapsed: timeElapsed,
+      type: "group",
+      home_team_name_en: sched.home,
+      away_team_name_en: sched.away,
+      home_team_label: sched.homeAbbr,
+      away_team_label: sched.awayAbbr,
+    });
+  }
+
+  return matches;
+};
+
+const getLeagueName = (leagueId: string): string => {
+  for (const s of SPORTS_CONFIGS) {
+    if (s.id === leagueId) return s.name;
+    const l = s.leagues?.find(l => l.id === leagueId);
+    if (l) return l.name;
+  }
+  return leagueId.toUpperCase();
+};
 
 const getTeamStrength = (teamName: string): number => {
   if (!teamName) return 75;
@@ -1246,7 +1518,6 @@ const getTeamStrength = (teamName: string): number => {
   }
   
   // 3. Fallback: Deterministic string hash mapping to a realistic team strength coefficient (50 - 99)
-  // This ensures sports leagues (NBA, NFL, MLB, Esports, Tennis) exhibit distinct but consistent team matchups
   let hash = 0;
   for (let i = 0; i < cleanName.length; i++) {
     hash = cleanName.charCodeAt(i) + ((hash << 5) - hash);
@@ -1268,14 +1539,23 @@ const formatTime12h = (date: Date): string => {
 
 const mapEspnEventToMatch = (event: any, sportId: string): RawMatch => {
   const competition = event.competitions?.[0] || {};
-  const homeCompetitor = competition.competitors?.find((c: any) => c.homeAway === 'home') || {};
-  const awayCompetitor = competition.competitors?.find((c: any) => c.homeAway === 'away') || {};
+  const competitors = competition.competitors || [];
   
-  const homeTeam = homeCompetitor.team || {};
-  const awayTeam = awayCompetitor.team || {};
+  let homeCompetitor = competitors.find((c: any) => c.homeAway === 'home');
+  let awayCompetitor = competitors.find((c: any) => c.homeAway === 'away');
   
-  const homeScore = homeCompetitor.score || '0';
-  const awayScore = awayCompetitor.score || '0';
+  if (!homeCompetitor && competitors.length > 0) homeCompetitor = competitors[0];
+  if (!awayCompetitor && competitors.length > 1) awayCompetitor = competitors[1];
+  if (!awayCompetitor) awayCompetitor = homeCompetitor || {};
+  
+  const homeTeam = homeCompetitor?.team || homeCompetitor?.athlete || {};
+  const awayTeam = awayCompetitor?.team || awayCompetitor?.athlete || {};
+  
+  const homeName = homeTeam.displayName || homeTeam.name || event.shortName || 'Home Participant';
+  const awayName = awayTeam.displayName || awayTeam.name || (competitors.length <= 1 ? 'Field / Opponent' : 'Away Participant');
+  
+  const homeScore = homeCompetitor?.score || '0';
+  const awayScore = awayCompetitor?.score || '0';
   
   const statusType = event.status?.type || {};
   const isFinished = statusType.state === 'post';
@@ -1287,7 +1567,7 @@ const mapEspnEventToMatch = (event: any, sportId: string): RawMatch => {
     finished = 'TRUE';
     timeElapsed = 'finished';
   } else if (isLive) {
-    timeElapsed = statusType.detail || 'live';
+    timeElapsed = statusType.detail || statusType.shortDetail || 'live';
   }
   
   let localDateStr = '06/11/2026 13:00';
@@ -1305,21 +1585,12 @@ const mapEspnEventToMatch = (event: any, sportId: string): RawMatch => {
     console.error('Error formatting ESPN event date', e);
   }
   
-  let leagueLabel = '';
-  if (sportId === 'soccer-epl') leagueLabel = 'Premier League';
-  else if (sportId === 'soccer-laliga') leagueLabel = 'LaLiga';
-  else if (sportId === 'nba') leagueLabel = 'NBA';
-  else if (sportId === 'nfl') leagueLabel = 'NFL';
-  else if (sportId === 'mlb') leagueLabel = 'MLB';
-  else if (sportId === 'nhl') leagueLabel = 'NHL';
-  else if (sportId === 'tennis') leagueLabel = 'ATP Tennis';
-  else if (sportId === 'ufc') leagueLabel = 'UFC';
-  else leagueLabel = sportId.toUpperCase();
+  const leagueLabel = event.league?.name || getLeagueName(sportId);
   
   return {
     id: `espn-${sportId}-${event.id}`,
-    home_team_id: homeTeam.displayName || 'Home Team',
-    away_team_id: awayTeam.displayName || 'Away Team',
+    home_team_id: homeName,
+    away_team_id: awayName,
     home_score: homeScore.toString(),
     away_score: awayScore.toString(),
     home_scorers: 'null',
@@ -1330,10 +1601,10 @@ const mapEspnEventToMatch = (event: any, sportId: string): RawMatch => {
     finished: finished,
     time_elapsed: timeElapsed,
     type: 'group',
-    home_team_name_en: homeTeam.displayName || 'Home Team',
-    away_team_name_en: awayTeam.displayName || 'Away Team',
-    home_team_label: homeTeam.abbreviation || 'HM',
-    away_team_label: awayTeam.abbreviation || 'AW',
+    home_team_name_en: homeName,
+    away_team_name_en: awayName,
+    home_team_label: homeTeam.abbreviation || homeName.substring(0, 3).toUpperCase(),
+    away_team_label: awayTeam.abbreviation || awayName.substring(0, 3).toUpperCase(),
     home_badge: homeTeam.logo || homeTeam.logos?.[0]?.href || '',
     away_badge: awayTeam.logo || awayTeam.logos?.[0]?.href || '',
   };
@@ -1791,9 +2062,10 @@ export default function SportsBettingGame() {
   const fetchEspnMatches = async (sportId: string) => {
     if (sportId === 'fifa-world-cup') return;
 
-    // Handle Esports simulation separately
-    if (sportId === 'esports') {
-      const stored = localStorage.getItem('rm_sports_sdb_cache_esports');
+    const simulatedSports = ['esports', 'boxing', 'cricket', 'rugby-union', 'rugby-league', 'wrestling'];
+    if (simulatedSports.includes(sportId)) {
+      const cacheKey = `rm_sports_sdb_cache_${sportId}`;
+      const stored = localStorage.getItem(cacheKey);
       let mapped: RawMatch[] = [];
       const now = new Date();
       if (stored) {
@@ -1813,17 +2085,29 @@ export default function SportsBettingGame() {
           let timeElapsed = match.time_elapsed;
 
           if (hasEndedNow && match.finished !== 'TRUE') {
-            homeScore = Math.random() < 0.5 ? "2" : "1";
-            awayScore = homeScore === "2" ? Math.floor(Math.random() * 2).toString() : "2";
+            if (sportId === 'boxing' || sportId === 'wrestling') {
+              homeScore = Math.random() < 0.5 ? "KO" : "Dec";
+              awayScore = "L";
+            } else if (sportId === 'cricket') {
+              homeScore = (185 + Math.floor(Math.random() * 30)).toString();
+              awayScore = (175 + Math.floor(Math.random() * 30)).toString();
+            } else {
+              homeScore = Math.random() < 0.5 ? "2" : "1";
+              awayScore = homeScore === "2" ? Math.floor(Math.random() * 2).toString() : "2";
+            }
             finished = 'TRUE';
             timeElapsed = 'finished';
             mChanged = true;
           } else if (isLiveNow) {
             const elapsed = Math.floor((now.getTime() - matchDate.getTime()) / (60 * 1000));
-            timeElapsed = `Map 2 - ${elapsed}m`;
-            if (Math.random() < 0.03 && homeScore === '0' && awayScore === '0') {
-              if (Math.random() < 0.5) homeScore = '1';
-              else awayScore = '1';
+            timeElapsed = `Live - ${elapsed}m`;
+            if (Math.random() < 0.04) {
+              if (sportId === 'cricket') {
+                homeScore = `15${Math.floor(elapsed / 2)}/${Math.floor(elapsed / 15)} (${Math.floor(elapsed / 4)} ov)`;
+              } else {
+                if (Math.random() < 0.5) homeScore = (Number(homeScore) + 1).toString();
+                else awayScore = (Number(awayScore) + 1).toString();
+              }
               mChanged = true;
             }
           }
@@ -1836,16 +2120,16 @@ export default function SportsBettingGame() {
         });
         
         if (changed) {
-          localStorage.setItem('rm_sports_sdb_cache_esports', JSON.stringify(mapped));
+          localStorage.setItem(cacheKey, JSON.stringify(mapped));
         }
       } else {
-        mapped = generateEsportsMatches(now);
-        localStorage.setItem('rm_sports_sdb_cache_esports', JSON.stringify(mapped));
+        mapped = generateSimulatedSportMatches(now, sportId);
+        localStorage.setItem(cacheKey, JSON.stringify(mapped));
       }
       
       setSportMatches(prev => ({
         ...prev,
-        esports: mapped
+        [sportId]: mapped
       }));
       return;
     }
@@ -1864,8 +2148,6 @@ export default function SportsBettingGame() {
 
     if (isCacheValid) {
       const parsed = JSON.parse(cachedGames);
-      
-      // Update the live/ended statuses dynamically even if using cached score layouts
       const updated = parsed.map((match: RawMatch) => {
         const matchDate = parseMatchDate(match.local_date, match.stadium_id);
         const matchEndDate = new Date(matchDate.getTime() + 120 * 60 * 1000);
@@ -1888,7 +2170,7 @@ export default function SportsBettingGame() {
           timeElapsed = `${elapsed}m`;
           
           if (Math.random() < 0.05) {
-            if (sportId === 'nba') {
+            if (sportId === 'basketball') {
               homeScore = (Number(homeScore) + Math.floor(Math.random() * 3 + 1)).toString();
               awayScore = (Number(awayScore) + Math.floor(Math.random() * 3 + 1)).toString();
             } else {
@@ -1931,32 +2213,38 @@ export default function SportsBettingGame() {
       });
 
       const results = await Promise.all(fetchPromises);
-      const allMatches = results.flat();
+      let allMatches = results.flat();
 
-      if (allMatches.length > 0) {
-        // Sort chronologically
-        const sorted = allMatches.sort((a: any, b: any) => {
-          return parseMatchDate(a.local_date, a.stadium_id).getTime() - parseMatchDate(b.local_date, b.stadium_id).getTime();
-        });
-
-        setSportMatches(prev => ({
-          ...prev,
-          [sportId]: sorted
-        }));
-
-        localStorage.setItem(cacheKey, JSON.stringify(sorted));
-        localStorage.setItem(cacheTimeKey, now.getTime().toString());
-      } else {
-        // If API returns no games, fallback to previous cached ones if present
-        if (cachedGames) {
-          setSportMatches(prev => ({
-            ...prev,
-            [sportId]: JSON.parse(cachedGames)
-          }));
-        }
+      // If ESPN returns 0 events for this sport (e.g. off season), fallback to simulated match generator
+      if (allMatches.length === 0) {
+        allMatches = generateSimulatedSportMatches(now, sportId);
       }
+
+      // Sort chronologically (LIVE first, then upcoming by start time)
+      const sorted = allMatches.sort((a: any, b: any) => {
+        const aDate = parseMatchDate(a.local_date, a.stadium_id);
+        const bDate = parseMatchDate(b.local_date, b.stadium_id);
+        const aLive = a.finished === 'FALSE' && a.time_elapsed !== 'notstarted';
+        const bLive = b.finished === 'FALSE' && b.time_elapsed !== 'notstarted';
+        if (aLive && !bLive) return -1;
+        if (!aLive && bLive) return 1;
+        return aDate.getTime() - bDate.getTime();
+      });
+
+      setSportMatches(prev => ({
+        ...prev,
+        [sportId]: sorted
+      }));
+
+      localStorage.setItem(cacheKey, JSON.stringify(sorted));
+      localStorage.setItem(cacheTimeKey, now.getTime().toString());
     } catch (err) {
       console.error(`Failed to fetch generic ESPN matches for ${sportId}:`, err);
+      const fallback = generateSimulatedSportMatches(now, sportId);
+      setSportMatches(prev => ({
+        ...prev,
+        [sportId]: fallback
+      }));
     }
   };
 
@@ -2608,8 +2896,15 @@ export default function SportsBettingGame() {
     }
 
     if (selectedLeague !== 'all') {
-      if (!match.id.startsWith(`espn-${selectedLeague}-`)) {
-        return false;
+      if (match.id.startsWith('espn-')) {
+        if (!match.id.startsWith(`espn-${selectedLeague}-`)) {
+          return false;
+        }
+      } else if (match.group) {
+        const leagueClean = selectedLeague.toLowerCase().replace('soccer-', '').replace('football-', '').replace('golf-', '').replace('tennis-', '').replace('racing-', '');
+        if (!match.group.toLowerCase().includes(leagueClean)) {
+          return false;
+        }
       }
     }
 
@@ -2667,20 +2962,21 @@ export default function SportsBettingGame() {
     const awayLabel = shortenCountryName(awayLabelRaw);
 
     if (selectedSport !== 'fifa-world-cup') {
+      const is3Way = selectedSport === 'soccer' || selectedSport === 'american-football' || selectedSport === 'football';
       return (
         <MarketAccordion 
-          title={selectedSport === 'football' ? "1X2 Match Winner" : "Match Winner"} 
+          title={is3Way ? "1X2 Match Winner" : "Match Winner"} 
           badge="Popular"
           tooltip={lang === 'vi' ? 'Dự đoán kết quả trận đấu' : 'Predict the match winner.'}
         >
-          <div className={`grid ${selectedSport === 'football' ? 'grid-cols-3' : 'grid-cols-2'} gap-2`}>
+          <div className={`grid ${is3Way ? 'grid-cols-3' : 'grid-cols-2'} gap-2`}>
             <OddsButton 
               label={homeLabelRaw} 
               odds={oddsHome} 
               selected={betType === '1x2' && selectedOutcome === 'home'}
               onClick={() => selectBetSlipWager('1x2', 'home', oddsHome, '1X2', home.name_en)}
             />
-            {selectedSport === 'football' && (
+            {is3Way && (
               <OddsButton 
                 label={lang === 'vi' ? 'Hòa' : 'Draw'} 
                 odds={oddsDraw} 
