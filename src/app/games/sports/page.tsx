@@ -50,6 +50,13 @@ interface RawMatch {
   away_team_label?: string;
   home_badge?: string;
   away_badge?: string;
+  realOdds?: {
+    home: number;
+    draw: number;
+    away: number;
+    provider?: string;
+    details?: string;
+  };
 }
 
 interface Bet {
@@ -1578,6 +1585,41 @@ const mapEspnEventToMatch = (event: any, sportId: string): RawMatch => {
   
   const leagueLabel = event.league?.name || getLeagueName(sportId);
   
+  // Real odds extraction from sportsbook provider (DraftKings / ESPN BET)
+  const oddsObj = competition.odds?.[0] || {};
+  let homeAmer = oddsObj.moneyline?.home?.close?.odds ?? oddsObj.homeTeamOdds?.moneyLine ?? null;
+  let awayAmer = oddsObj.moneyline?.away?.close?.odds ?? oddsObj.awayTeamOdds?.moneyLine ?? null;
+  let drawAmer = oddsObj.moneyline?.draw?.close?.odds ?? oddsObj.drawOdds?.moneyLine ?? null;
+
+  if (!homeAmer && oddsObj.details) {
+    const parts = oddsObj.details.split(' ');
+    if (parts.length >= 2) {
+      const val = parts[parts.length - 1];
+      if (val.startsWith('+') || val.startsWith('-')) {
+        homeAmer = val;
+      }
+    }
+  }
+
+  const parseAmer = (val: any): number | null => {
+    if (val === undefined || val === null) return null;
+    const num = typeof val === 'string' ? parseFloat(val.replace('+', '')) : val;
+    if (isNaN(num) || num === 0) return null;
+    return num > 0 ? Math.round((1 + num / 100) * 100) / 100 : Math.round((1 + 100 / Math.abs(num)) * 100) / 100;
+  };
+
+  const homeDec = parseAmer(homeAmer);
+  const awayDec = parseAmer(awayAmer);
+  const drawDec = parseAmer(drawAmer);
+
+  const realOdds = (homeDec || awayDec) ? {
+    home: homeDec || 1.85,
+    draw: drawDec || 3.20,
+    away: awayDec || 1.85,
+    provider: oddsObj.provider?.name || 'DraftKings Sportsbook',
+    details: oddsObj.details || undefined,
+  } : undefined;
+  
   return {
     id: `espn-${sportId}-${event.id}`,
     home_team_id: homeName,
@@ -1598,6 +1640,7 @@ const mapEspnEventToMatch = (event: any, sportId: string): RawMatch => {
     away_team_label: awayTeam.abbreviation || awayName.substring(0, 3).toUpperCase(),
     home_badge: homeTeam.logo || homeTeam.logos?.[0]?.href || '',
     away_badge: awayTeam.logo || awayTeam.logos?.[0]?.href || '',
+    realOdds,
   };
 };
 
@@ -1955,6 +1998,14 @@ export default function SportsBettingGame() {
   const [oddsAway, setOddsAway] = useState<number>(1.85);
 
   const calculateInitialOdds = (match: RawMatch) => {
+    if (match.realOdds) {
+      return {
+        home: match.realOdds.home,
+        draw: match.realOdds.draw,
+        away: match.realOdds.away,
+      };
+    }
+
     const home = getTeam(match.home_team_id, match, 'home');
     const away = getTeam(match.away_team_id, match, 'away');
     
@@ -2957,7 +3008,7 @@ export default function SportsBettingGame() {
       return (
         <MarketAccordion 
           title={is3Way ? "1X2 Match Winner" : "Match Winner"} 
-          badge="Popular"
+          badge={selectedMatch.realOdds?.provider ? `Live ${selectedMatch.realOdds.provider}` : "Popular"}
           tooltip={lang === 'vi' ? 'Dự đoán kết quả trận đấu' : 'Predict the match winner.'}
         >
           <div className={`grid ${is3Way ? 'grid-cols-3' : 'grid-cols-2'} gap-2`}>
