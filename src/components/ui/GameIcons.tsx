@@ -862,6 +862,40 @@ export function GameIcon({ id, className = 'w-12 h-12' }: GameIconProps) {
           <path d="M 42 78 H 48 M 50 78 H 56" stroke="#eab308" strokeWidth="3" strokeLinecap="round" />
         </svg>
       );
+    case 'sports':
+      return (
+        <svg viewBox="0 0 100 100" className={`${className} filter drop-shadow-[0_0_12px_rgba(16,185,129,0.5)]`}>
+          <defs>
+            <linearGradient id="sportsBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#10b981" />
+              <stop offset="100%" stopColor="#047857" />
+            </linearGradient>
+            <linearGradient id="trophyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stopColor="#fbbf24" />
+              <stop offset="100%" stopColor="#d97706" />
+            </linearGradient>
+          </defs>
+          {/* Pitch lines background */}
+          <rect x="15" y="15" width="70" height="70" rx="12" fill="url(#sportsBgGrad)" stroke="#34d399" strokeWidth="2" />
+          <circle cx="50" cy="50" r="16" fill="none" stroke="#ffffff" strokeWidth="2" opacity="0.4" />
+          <line x1="15" y1="50" x2="85" y2="50" stroke="#ffffff" strokeWidth="2" opacity="0.4" />
+          
+          {/* Soccer ball on front right */}
+          <circle cx="62" cy="56" r="14" fill="#ffffff" stroke="#0f172a" strokeWidth="2" />
+          <polygon points="62,48 67,52 65,58 59,58 57,52" fill="#0f172a" />
+          <line x1="62" y1="48" x2="62" y2="44" stroke="#0f172a" strokeWidth="1.5" />
+          <line x1="67" y1="52" x2="72" y2="50" stroke="#0f172a" strokeWidth="1.5" />
+          <line x1="65" y1="58" x2="69" y2="62" stroke="#0f172a" strokeWidth="1.5" />
+          <line x1="59" y1="58" x2="55" y2="62" stroke="#0f172a" strokeWidth="1.5" />
+          <line x1="57" y1="52" x2="52" y2="50" stroke="#0f172a" strokeWidth="1.5" />
+          
+          {/* Trophy on front left */}
+          <path d="M 32 30 L 48 30 L 45 48 C 45 54 35 54 35 48 Z" fill="url(#trophyGrad)" stroke="#f59e0b" strokeWidth="1.5" />
+          <rect x="37" y="54" width="6" height="10" fill="#fbbf24" />
+          <rect x="33" y="64" width="14" height="4" rx="1" fill="#d97706" />
+          <path d="M 30 34 C 24 34 24 44 32 44 M 50 34 C 56 34 56 44 48 44" fill="none" stroke="#fbbf24" strokeWidth="2" />
+        </svg>
+      );
     default:
       return (
         <svg viewBox="0 0 100 100" className={className}>

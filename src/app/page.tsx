@@ -88,7 +88,7 @@ const GAMES = [
   { id: 'chicken-cross', name: 'Chicken Cross', desc: 'Help the chicken cross the lanes of traffic to reach the grass for a 10x multiplier!', path: '/games/chicken-cross', tag: '10x Payout', category: 'original', thumbnail: '/images/thumbnails/chicken-cross.png' },
   
   // Sports category
-  { id: 'sports', name: 'Sports Betting', desc: 'Place bets on upcoming FIFA World Cup matches for a double-or-nothing payout.', path: '/games/sports', tag: 'Sportsbook', category: 'sports' },
+  { id: 'sports', name: 'Sports Betting', desc: 'Place virtual bets on live global sports fixtures including Premier League, NBA, NFL, UFC & Esports.', path: '/games/sports', tag: 'Sportsbook', category: 'sports' },
   { id: 'penalty', name: 'Penalty Shootout', desc: 'Shoot penalties and build multipliers. Cash out anytime!', path: '/games/penalty', tag: 'Sports Action', category: 'original', thumbnail: '/images/thumbnails/penalty.png' },
 
   // Slots category (replaces arcade games)

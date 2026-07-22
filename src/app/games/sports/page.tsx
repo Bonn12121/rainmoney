@@ -476,10 +476,10 @@ const TEAM_TRANSLATIONS: Record<string, string> = {
 const TRANSLATIONS = {
   en: {
     backToLobby: 'Back to Lobby',
-    sportsBook: 'FIFA 2026 Sports Book',
+    sportsBook: 'Live Sportsbook',
     liveSportsbook: 'Live Sportsbook',
-    fifaWorldCup: 'FIFA World Cup',
-    titleDescription: 'Place virtual wagers on real World Cup fixtures. Settle bets in real-time concluding matches (90+ mins elapsed) powered by the live tournament feed.',
+    fifaWorldCup: 'Live Football & Global Sports',
+    titleDescription: 'Place virtual wagers on live global sports fixtures across Premier League, LaLiga, Champions League, NBA, NFL, UFC, Esports & more. Real-time settlements powered by live feeds.',
     virtualBalance: 'Virtual Balance',
     activeBets: 'Active Bets',
     inPlay: 'In-Play',
@@ -487,10 +487,10 @@ const TRANSLATIONS = {
     systemLocalTime: 'System Local Time',
     connectingFeed: 'Connecting live feed...',
     feedConnected: 'Live API feed connected',
-    schedule: 'FIFA World Cup Schedule',
+    schedule: 'Live Fixtures Schedule',
     upcomingOnly: 'Upcoming Only',
     allFixtures: 'All Fixtures',
-    searchCountry: 'Search country...',
+    searchCountry: 'Search country or team...',
     allGroups: 'All Groups',
     noFixtures: 'No upcoming fixtures found. Switch to "All Fixtures" to see past matches.',
     upcoming: 'Upcoming',
@@ -519,9 +519,9 @@ const TRANSLATIONS = {
     noHistory: 'No completed bets in history. Settle an active bet to record history.',
     payout: 'Payout',
     loss: 'Loss',
-    regulationsTitle: 'FIFA 2026 Sportsbook Regulations',
-    regulationsText: 'Match fixtures represent live World Cup schedules. Users can select and stake virtual credits on matchups. Results cannot be settled until the scheduled match reaches completion (at least 90 minutes past start time). Upon settling, the platform queries the live tournament feed to update matches with real concluded scores. Winnings are distributed instantly based on correct score outcomes.',
-    modalTitle: 'World Cup Match Report',
+    regulationsTitle: 'Live Sportsbook Regulations',
+    regulationsText: 'Match fixtures represent live global sports schedules across top football leagues, NBA, NFL, UFC, and Esports. Stake virtual credits on live fixtures. Results settle automatically once scheduled fixtures complete with live API scores. Winnings distribute instantly.',
+    modalTitle: 'Match Report & Settlement',
     contactingLiveScoreboard: 'Contacting Live Scoreboard API...',
     failedFetchScores: 'Failed to fetch match scores from API. Please try again.',
     retrySettle: 'Retry Settle',
@@ -537,10 +537,10 @@ const TRANSLATIONS = {
   },
   vi: {
     backToLobby: 'Quay lại Sảnh',
-    sportsBook: 'Bảng Tỷ Lệ Thể Thao FIFA 2026',
+    sportsBook: 'Bảng Tỷ Lệ Thể Thao Trực Tiếp',
     liveSportsbook: 'Cá Cược Trực Tiếp',
-    fifaWorldCup: 'FIFA World Cup',
-    titleDescription: 'Đặt cược ảo vào các trận đấu World Cup thực tế. Quyết toán cược theo thời gian thực cho các trận đấu đã kết thúc (sau 90+ phút) thông qua dữ liệu giải đấu trực tiếp.',
+    fifaWorldCup: 'Bóng Đá & Thể Thao Trực Tiếp',
+    titleDescription: 'Đặt cược ảo vào các trận đấu bóng đá toàn cầu (Ngoại Hạng Anh, LaLiga, Cúp C1), NBA, NFL, UFC, Esports và nhiều hơn nữa. Quyết toán cược theo thời gian thực.',
     virtualBalance: 'Số Dư Ảo',
     activeBets: 'Cược Đang Chạy',
     inPlay: 'Đang chạy',
@@ -548,10 +548,10 @@ const TRANSLATIONS = {
     systemLocalTime: 'Giờ Hệ Thống',
     connectingFeed: 'Đang kết nối dữ liệu...',
     feedConnected: 'Đã kết nối dữ liệu API',
-    schedule: 'Lịch Thi Đấu FIFA World Cup',
+    schedule: 'Lịch Thi Đấu Thể Thao',
     upcomingOnly: 'Trận Sắp Diễn Ra',
     allFixtures: 'Tất Cả Trận Đấu',
-    searchCountry: 'Tìm quốc gia...',
+    searchCountry: 'Tìm quốc gia hoặc đội bóng...',
     allGroups: 'Tất Cả Các Bảng',
     noFixtures: 'Không tìm thấy trận đấu sắp tới nào. Hãy chuyển sang "Tất Cả Trận Đấu" để xem các trận đã qua.',
     upcoming: 'Chưa diễn ra',
@@ -580,9 +580,9 @@ const TRANSLATIONS = {
     noHistory: 'Chưa có cược nào được quyết toán. Quyết toán một cược đang chạy để lưu lịch sử.',
     payout: 'Thanh toán',
     loss: 'Thua',
-    regulationsTitle: 'Quy Định Thể Thao FIFA 2026',
-    regulationsText: 'Các trận đấu hiển thị lịch thi đấu World Cup thực tế. Người dùng có thể chọn và đặt cược tín dụng ảo vào các cặp đấu. Kết quả cược không thể quyết toán cho đến khi trận đấu kết thúc hoàn toàn (ít nhất 90 phút sau khi bắt đầu). Khi quyết toán, hệ thống sẽ truy vấn dữ liệu trực tiếp để cập nhật kết quả thực tế. Tiền thắng cược sẽ được cộng ngay lập tức dựa trên kết quả chính xác.',
-    modalTitle: 'Báo Cáo Trận Đấu World Cup',
+    regulationsTitle: 'Quy Định Thể Thao Trực Tiếp',
+    regulationsText: 'Các trận đấu hiển thị lịch thi đấu trực tiếp thực tế từ các giải bóng đá hàng đầu, NBA, NFL, UFC và Esports. Người dùng chọn và đặt cược tín dụng ảo. Kết quả được quyết toán dựa trên bảng điểm API trực tiếp khi trận đấu hoàn tất. Tiền thắng cược được cộng ngay lập tức.',
+    modalTitle: 'Báo Cáo Trận Đấu & Quyết Toán',
     contactingLiveScoreboard: 'Đang kết nối với API bảng điểm...',
     failedFetchScores: 'Lấy kết quả từ API thất bại. Vui lòng thử lại.',
     retrySettle: 'Thử Lại Quyết Toán',
@@ -598,7 +598,8 @@ const TRANSLATIONS = {
   }
 };
 
-const getStadiumTimezone = (stadiumId: string): string => {
+const getStadiumTimezone = (stadiumId?: string): string => {
+  if (!stadiumId) return '';
   const id = Number(stadiumId);
   if (id >= 1 && id <= 3) return '-06:00';
   if (id >= 4 && id <= 6) return '-05:00';
@@ -607,63 +608,54 @@ const getStadiumTimezone = (stadiumId: string): string => {
   return '-04:00'; // fallback
 };
 
-// Parse match date string of format "MM/DD/YYYY HH:mm" into a client-local Date object using stadium timezone
+// Parse match date string into a client-local Date object (displaying in user local timezone)
 const parseMatchDate = (dateStr: string, stadiumId?: string): Date => {
   try {
     if (!dateStr) return new Date(0);
-    const [datePart, timePart] = dateStr.split(' ');
-    if (!datePart || !timePart) return new Date(0);
-    const [month, day, year] = datePart.split('/').map(Number);
-    const [hour, minute] = timePart.split(':').map(Number);
-    
-    if (!stadiumId) {
-      // Use the user's local timezone (client-local Date object)
-      return new Date(year, month - 1, day, hour, minute);
+
+    // Standard ISO format (e.g. 2026-07-22T15:00:00Z or ISO string from API)
+    if (dateStr.includes('T')) {
+      const parsedIso = new Date(dateStr);
+      if (!isNaN(parsedIso.getTime())) return parsedIso;
     }
-    
-    const mm = month.toString().padStart(2, '0');
-    const dd = day.toString().padStart(2, '0');
-    const hh = hour.toString().padStart(2, '0');
-    const min = minute.toString().padStart(2, '0');
-    
-    const tz = getStadiumTimezone(stadiumId);
-    const isoStr = `${year}-${mm}-${dd}T${hh}:${min}:00${tz}`;
-    return new Date(isoStr);
+
+    // MM/DD/YYYY HH:mm or YYYY-MM-DD HH:mm format
+    const [datePart, timePart] = dateStr.split(' ');
+    if (!datePart || !timePart) {
+      const fallback = new Date(dateStr);
+      return isNaN(fallback.getTime()) ? new Date(0) : fallback;
+    }
+
+    const separator = datePart.includes('/') ? '/' : '-';
+    const parts = datePart.split(separator).map(Number);
+    let month = parts[0], day = parts[1], year = parts[2];
+    if (parts[0] > 1000) { // YYYY-MM-DD
+      year = parts[0]; month = parts[1]; day = parts[2];
+    }
+    const [hour, minute] = timePart.split(':').map(Number);
+
+    if (stadiumId) {
+      const tz = getStadiumTimezone(stadiumId);
+      if (tz) {
+        const mm = month.toString().padStart(2, '0');
+        const dd = day.toString().padStart(2, '0');
+        const hh = hour.toString().padStart(2, '0');
+        const min = minute.toString().padStart(2, '0');
+        const isoStr = `${year}-${mm}-${dd}T${hh}:${min}:00${tz}`;
+        const d = new Date(isoStr);
+        if (!isNaN(d.getTime())) return d;
+      }
+    }
+
+    // Default to user's client local timezone Date object
+    return new Date(year, month - 1, day, hour, minute);
   } catch (e) {
     console.error('Error parsing match date:', dateStr, e);
     return new Date(0);
   }
 };
 
-
-
-const overrideWorldCupMatches = (matches: RawMatch[]): RawMatch[] => {
-  return matches.map(match => {
-    if (match.id === '103') {
-      return {
-        ...match,
-        home_team_id: '33', // France
-        away_team_id: '45', // England
-        home_team_name_en: 'France',
-        away_team_name_en: 'England',
-        home_team_label: 'FRA',
-        away_team_label: 'ENG'
-      };
-    }
-    if (match.id === '104') {
-      return {
-        ...match,
-        home_team_id: '29', // Spain
-        away_team_id: '37', // Argentina
-        home_team_name_en: 'Spain',
-        away_team_name_en: 'Argentina',
-        home_team_label: 'ESP',
-        away_team_label: 'ARG'
-      };
-    }
-    return match;
-  });
-};
+const overrideWorldCupMatches = (matches: RawMatch[]): RawMatch[] => matches;
 
 
 // Helper to parse scorers string format like {"Nestory Irankunda 27'","C. Metcalfe 75'"}
@@ -1178,8 +1170,8 @@ const generateEsportsMatches = (clientTime: Date): RawMatch[] => {
 const SPORTS_CONFIGS = [
   { 
     id: 'soccer', 
-    name: 'Soccer', 
-    nameVi: 'Bóng đá', 
+    name: 'Football (Soccer)', 
+    nameVi: 'Bóng đá (Football)', 
     icon: '⚽',
     leagues: [
       { id: 'soccer-all', name: 'All 260+ Leagues', nameVi: 'Tất cả 260+ Giải đấu' },
@@ -1190,14 +1182,13 @@ const SPORTS_CONFIGS = [
       { id: 'soccer-ligue1', name: 'Ligue 1', nameVi: 'Ligue 1 (Pháp)' },
       { id: 'soccer-mls', name: 'MLS', nameVi: 'MLS (Nhà nghề Mỹ)' },
       { id: 'soccer-ucl', name: 'Champions League', nameVi: 'Cúp C1 Châu Âu' },
-      { id: 'soccer-uel', name: 'Europa League', nameVi: 'Cúp C2 Châu Âu' },
-      { id: 'soccer-worldcup', name: 'World Cup', nameVi: 'World Cup' }
+      { id: 'soccer-uel', name: 'Europa League', nameVi: 'Cúp C2 Châu Âu' }
     ]
   },
   {
     id: 'american-football',
-    name: 'Football',
-    nameVi: 'Bóng bầu dục (Football)',
+    name: 'American Football (NFL)',
+    nameVi: 'Bóng bầu dục Mỹ (NFL)',
     icon: '🏈',
     leagues: [
       { id: 'football-nfl', name: 'NFL', nameVi: 'NFL' },
@@ -1954,7 +1945,7 @@ export default function SportsBettingGame() {
   };
 
   // Sport Selection & Simulated Games States
-  const [selectedSport, setSelectedSport] = useState<string>('fifa-world-cup');
+  const [selectedSport, setSelectedSport] = useState<string>('soccer');
   const [selectedLeague, setSelectedLeague] = useState<string>('all');
   const [sportMatches, setSportMatches] = useState<Record<string, RawMatch[]>>({});
 
