@@ -1535,6 +1535,44 @@ const formatTime12h = (date: Date): string => {
   return `${hrStr}:${minStr}${ampm}`;
 };
 
+const parseEspnMatchId = (matchId: string): { sportId: string; eventId: string } => {
+  const parts = matchId.split('-');
+  if (parts.length >= 3) {
+    const eventId = parts[parts.length - 1];
+    const sportId = parts.slice(1, parts.length - 1).join('-');
+    return { sportId, eventId };
+  }
+  return { sportId: parts[1] || 'soccer', eventId: parts[2] || '' };
+};
+
+const TEST_MATCH_COLUMBUS_NYC: RawMatch = {
+  id: 'espn-soccer-mls-761668',
+  home_team_id: 'Columbus Crew',
+  away_team_id: 'New York City FC',
+  home_score: '1',
+  away_score: '2',
+  home_scorers: 'null',
+  away_scorers: 'null',
+  group: 'MLS',
+  matchday: '1',
+  local_date: '07/22/2026 19:30',
+  finished: 'TRUE',
+  time_elapsed: 'finished',
+  type: 'group',
+  home_team_name_en: 'Columbus Crew',
+  away_team_name_en: 'New York City FC',
+  home_team_label: 'CLB',
+  away_team_label: 'NYC',
+  home_badge: 'https://a.espncdn.com/i/teamlogos/soccer/500/1826.png',
+  away_badge: 'https://a.espncdn.com/i/teamlogos/soccer/500/17606.png',
+  realOdds: {
+    home: 2.10,
+    draw: 3.40,
+    away: 3.20,
+    provider: 'DraftKings Sportsbook'
+  }
+};
+
 const mapEspnEventToMatch = (event: any, sportId: string): RawMatch => {
   const competition = event.competitions?.[0] || {};
   const competitors = competition.competitors || [];
@@ -1556,7 +1594,7 @@ const mapEspnEventToMatch = (event: any, sportId: string): RawMatch => {
   const awayScore = awayCompetitor?.score || '0';
   
   const statusType = event.status?.type || {};
-  const isFinished = statusType.state === 'post';
+  const isFinished = statusType.state === 'post' || statusType.completed === true || statusType.name === 'STATUS_FULL_TIME';
   const isLive = statusType.state === 'in';
   
   let finished = 'FALSE';
@@ -2009,9 +2047,7 @@ export default function SportsBettingGame() {
     const home = getTeam(match.home_team_id, match, 'home');
     const away = getTeam(match.away_team_id, match, 'away');
     
-    const sportId = match.id.startsWith('espn-') ? match.id.split('-')[1]
-      : match.id.startsWith('sim-') ? match.id.split('-')[1]
-      : 'fifa-world-cup';
+    const { sportId } = parseEspnMatchId(match.id);
     
     if (match.id === '104') {
       return { home: 2.30, draw: 3.05, away: 3.20 };
@@ -2183,6 +2219,13 @@ export default function SportsBettingGame() {
         if (!aLive && bLive) return 1;
         return aDate.getTime() - bDate.getTime();
       });
+
+      if (sportId === 'soccer') {
+        const hasColumbus = sorted.some((m: any) => m.id === TEST_MATCH_COLUMBUS_NYC.id || (m.home_team_name_en?.includes('Columbus') && m.away_team_name_en?.includes('New York')));
+        if (!hasColumbus) {
+          sorted.unshift(TEST_MATCH_COLUMBUS_NYC);
+        }
+      }
 
       setSportMatches(prev => ({
         ...prev,
@@ -2543,8 +2586,7 @@ export default function SportsBettingGame() {
       const isSimulated = bet.match.id.startsWith('sim-');
 
       if (isEspn) {
-        const sportId = bet.match.id.split('-')[1];
-        const eventId = bet.match.id.split('-')[2];
+        const { sportId, eventId } = parseEspnMatchId(bet.match.id);
         if (sportId === 'nfl') {
           const stored = localStorage.getItem('rm_sports_nfl_games');
           if (stored) {
@@ -2582,12 +2624,26 @@ export default function SportsBettingGame() {
         }
       } else {
         // Fallback for old simulated matches in active bets
-        const sportId = bet.match.id.split('-')[1];
+        const { sportId } = parseEspnMatchId(bet.match.id);
         const sportMatchesList = sportMatches[sportId] || [];
         const currentSimMatch = sportMatchesList.find(m => m.id === bet.match.id);
         if (currentSimMatch) {
           finalGame = currentSimMatch;
         }
+      }
+
+      // Check if match end time has passed or if finished status needs auto-completion
+      const matchDate = parseMatchDate(finalGame.local_date, finalGame.stadium_id);
+      const now = new Date();
+      const matchAgeMins = (now.getTime() - matchDate.getTime()) / (60 * 1000);
+      const hasTimeEnded = matchAgeMins >= 105;
+
+      if (hasTimeEnded || isSimulated || finalGame.time_elapsed === 'finished') {
+        finalGame = {
+          ...finalGame,
+          finished: 'TRUE',
+          time_elapsed: 'finished'
+        };
       }
 
       const liveHomeScore = parseInt(finalGame.home_score) || 0;
@@ -2829,7 +2885,7 @@ export default function SportsBettingGame() {
       setResolvedBets(curr => [resolved, ...curr]);
     } catch (err: any) {
       console.error('Settle API Error:', err);
-      setSettlingError('Failed to fetch match scores from API. Please try again.');
+      setSettlingError(err.message || (lang === 'vi' ? 'Lỗi quyết toán cược. Vui lòng thử lại.' : 'Failed to fetch match scores from API. Please try again.'));
     } finally {
       setSettlingLoading(false);
     }
@@ -3564,6 +3620,23 @@ export default function SportsBettingGame() {
                   {lang === 'vi' ? league.nameVi : league.name}
                 </button>
               ))}
+              <button
+                onClick={() => {
+                  setSelectedSport('soccer');
+                  setSelectedLeague('soccer-mls');
+                  setSelectedMatch(TEST_MATCH_COLUMBUS_NYC);
+                  setSportMatches(prev => ({
+                    ...prev,
+                    soccer: [TEST_MATCH_COLUMBUS_NYC, ...(prev.soccer || []).filter(m => m.id !== TEST_MATCH_COLUMBUS_NYC.id)]
+                  }));
+                  playClick();
+                }}
+                className="ml-auto px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider bg-amber-500/20 border border-amber-500/50 text-amber-300 hover:bg-amber-500/30 transition-all cursor-pointer flex items-center gap-1 shadow-[0_0_10px_rgba(245,158,11,0.2)] shrink-0"
+                title="Test Match: Columbus Crew vs New York City FC"
+              >
+                <span>🧪</span>
+                <span>{lang === 'vi' ? 'Trận Test: Columbus Crew vs NYC' : 'Test Match: Columbus Crew vs NYC'}</span>
+              </button>
             </div>
           );
         }
@@ -4095,7 +4168,7 @@ export default function SportsBettingGame() {
               <div className="p-8 text-center flex flex-col items-center gap-4 flex-grow">
                 <AlertCircle className="w-8 h-8 text-red-500 animate-bounce" />
                 <span className="text-xs font-bold text-neutral-300">
-                  {lang === 'vi' ? 'Kết nối API thất bại. Vui lòng thử lại.' : settlingError}
+                  {settlingError}
                 </span>
                 <Button
                   variant="gold"
