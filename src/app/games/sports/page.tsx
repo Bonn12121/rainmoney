@@ -1551,8 +1551,8 @@ const TEST_MATCH_COLUMBUS_NYC: RawMatch = {
   away_team_id: 'New York City FC',
   home_score: '1',
   away_score: '2',
-  home_scorers: 'null',
-  away_scorers: 'null',
+  home_scorers: '["Dániel Gazdag 90\'+3\' (P)"]',
+  away_scorers: '["Nicolás Fernández 28\' (P)", "Agustin Ojeda 70\'"]',
   group: 'MLS',
   matchday: '1',
   local_date: '07/22/2026 19:30',
@@ -1658,14 +1658,51 @@ const mapEspnEventToMatch = (event: any, sportId: string): RawMatch => {
     details: oddsObj.details || undefined,
   } : undefined;
   
+  // Extract Goal Scorers and Penalty Scores from ESPN event payload
+  const homeScorersList: string[] = [];
+  const awayScorersList: string[] = [];
+
+  const homeId = homeCompetitor?.team?.id || homeCompetitor?.id;
+  const awayId = awayCompetitor?.team?.id || awayCompetitor?.id;
+
+  (competition.details || []).forEach((dt: any) => {
+    if (dt.scoringPlay) {
+      const athlete = dt.athletesInvolved?.[0];
+      const name = athlete?.displayName || athlete?.shortName || athlete?.fullName || 'Goal';
+      const clock = dt.clock?.displayValue || '';
+      const isPen = dt.penaltyKick || (dt.type?.text && dt.type.text.toLowerCase().includes('penalty'));
+      const isOg = dt.ownGoal || (dt.type?.text && dt.type.text.toLowerCase().includes('own goal'));
+      const label = `${name} ${clock}${isPen ? ' (P)' : isOg ? ' (OG)' : ''}`.trim();
+      
+      const teamId = dt.team?.id;
+      if (teamId && homeId && teamId.toString() === homeId.toString()) {
+        homeScorersList.push(label);
+      } else if (teamId && awayId && teamId.toString() === awayId.toString()) {
+        awayScorersList.push(label);
+      } else if (dt.team?.displayName === homeName) {
+        homeScorersList.push(label);
+      } else if (dt.team?.displayName === awayName) {
+        awayScorersList.push(label);
+      }
+    }
+  });
+
+  const homeScorersStr = homeScorersList.length > 0 ? JSON.stringify(homeScorersList) : 'null';
+  const awayScorersStr = awayScorersList.length > 0 ? JSON.stringify(awayScorersList) : 'null';
+
+  const homePenalty = homeCompetitor?.shootoutScore !== undefined ? homeCompetitor.shootoutScore.toString() : undefined;
+  const awayPenalty = awayCompetitor?.shootoutScore !== undefined ? awayCompetitor.shootoutScore.toString() : undefined;
+
   return {
     id: `espn-${sportId}-${event.id}`,
     home_team_id: homeName,
     away_team_id: awayName,
     home_score: homeScore.toString(),
     away_score: awayScore.toString(),
-    home_scorers: 'null',
-    away_scorers: 'null',
+    home_scorers: homeScorersStr,
+    away_scorers: awayScorersStr,
+    home_penalty_score: homePenalty,
+    away_penalty_score: awayPenalty,
     group: leagueLabel,
     matchday: '1',
     local_date: localDateStr,
@@ -2825,13 +2862,12 @@ export default function SportsBettingGame() {
           isWin = (bet.prediction === matchWinner) || didLeadByTwo;
         }
       } else {
+        // Standard 1X2 / 3-Way Match Result is 90 mins regulation ONLY (no ET, no Penalty Shootout)
         let finalOutcome = 'draw';
         if (homeScore > awayScore) {
           finalOutcome = 'home';
         } else if (awayScore > homeScore) {
           finalOutcome = 'away';
-        } else if (wentToPenalties) {
-          finalOutcome = pHome > pAway ? 'home' : 'away';
         }
         isWin = bet.prediction === finalOutcome;
       }
